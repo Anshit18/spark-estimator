@@ -9,14 +9,17 @@
   <title>Spark Estimator</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ea580c" />
-  <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));</script>
+  <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{}));</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
     *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
     html{height:100%}
-    body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
+    body{margin:0;min-height:100%;font-family:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
     /* Prevent iOS Safari from zooming in on input focus (requires ≥16px font) */
     input[type=text],input[type=number],input[type=file],textarea{font-size:max(16px,1rem)!important}
     input[type=number]::-webkit-inner-spin-button,
@@ -26,14 +29,19 @@
     .pt-safe{padding-top:max(0px,env(safe-area-inset-top))}
     #side-panel{transition:transform .25s cubic-bezier(.4,0,.2,1)}
     .group-body{transition:opacity .15s}
+    .cost-bar{position:absolute;bottom:0;left:0;height:3px;background:#ea580c;transition:width .45s cubic-bezier(.4,0,.2,1)}
+    .room-cost-bar{position:absolute;bottom:0;left:0;height:3px;background:#5eead4;transition:width .45s cubic-bezier(.4,0,.2,1)}
+    .na-on{background:rgba(94,234,212,0.15);color:#0f766e}
+    .na-off{background:rgba(255,255,255,0.1);color:rgba(234,229,236,0.7)}
+    @media(prefers-reduced-motion:reduce){.cost-bar,.room-cost-bar,.group-body,#progress-bar,#side-panel{transition:none}}
   </style>
 </head>
-<body class="bg-slate-100">
+<body class="bg-gray-100">
 
 <!-- ── Side panel ─────────────────────────────────────────────────────── -->
 <div id="panel-overlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
 <div id="side-panel" class="fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-2xl -translate-x-full flex flex-col">
-  <div class="bg-gray-900 text-white px-4 pt-safe flex-shrink-0">
+  <div class="px-4 pt-safe flex-shrink-0" style="background:#0a0e17;color:#eae5ec">
     <div class="flex items-center justify-between py-4 mt-1">
       <span class="font-bold text-lg">Projects</span>
       <button id="close-panel" class="text-gray-400 p-2 text-xl leading-none active:text-white" style="min-width:44px;min-height:44px">✕</button>
@@ -452,12 +460,17 @@ function patchGroupSub(roomId,gKey){
   const sub=computeGroupSub(room,gKey);
   const el=document.getElementById(`gsub-${roomId}-${gKey}`);
   if(el)el.textContent=sub>0?fmt(sub):'';
+  const bar=document.getElementById(`gbar-${roomId}-${gKey}`);
+  if(bar){const t=computeTotal(proj);bar.style.width=(t>0?Math.min(Math.round(sub/t*100),100):0)+'%';}
 }
 function patchRoomSub(roomId){
   const room=proj.rooms.find(r=>r.id===roomId);
   if(!room)return;
+  const sub=computeRoomSub(room);
   const el=document.getElementById(`rsub-${roomId}`);
-  if(el)el.textContent=computeRoomSub(room)>0?fmt(computeRoomSub(room)):'';
+  if(el)el.textContent=sub>0?fmt(sub):'';
+  const bar=document.getElementById(`rbar-${roomId}`);
+  if(bar){const t=computeTotal(proj);bar.style.width=(t>0?Math.min(Math.round(sub/t*100),100):0)+'%';}
 }
 function patchFooter(){
   const el=document.getElementById('footer-total');
@@ -468,17 +481,10 @@ function patchProgress(){
   const{pct,done,total}=progressStats(proj);
   const bar=document.getElementById('progress-bar');
   const txt=document.getElementById('progress-txt');
-  if(bar){
-    bar.style.width=pct+'%';
-    bar.classList.toggle('bg-green-500',pct===100);
-    bar.classList.toggle('bg-orange-500',pct<100);
-  }
+  if(bar){bar.style.width=pct+'%';bar.style.background=pct===100?'#5eead4':'#ea580c';}
   if(txt){
-    txt.textContent=pct===100
-      ?`All ${total} groups reviewed`
-      :`${pct}% · ${done} of ${total} groups reviewed`;
-    txt.classList.toggle('text-green-600',pct===100);
-    txt.classList.toggle('text-gray-400',pct<100);
+    txt.textContent=pct===100?`All ${total} groups reviewed`:`${pct}% · ${done} of ${total} groups reviewed`;
+    txt.style.color=pct===100?'#0d9488':'#9ca3af';
   }
 }
 
@@ -530,10 +536,7 @@ function handleNoAction(roomId,gKey){
   if(bodyEl)bodyEl.style.opacity=g.noAction?'0.35':'1';
   if(btnEl){
     btnEl.textContent=g.noAction?'✓ No Action':'No Action';
-    btnEl.classList.toggle('bg-green-100',g.noAction);
-    btnEl.classList.toggle('text-green-700',g.noAction);
-    btnEl.classList.toggle('bg-gray-100',!g.noAction);
-    btnEl.classList.toggle('text-gray-500',!g.noAction);
+    btnEl.className=btnEl.className.replace(/\bna-(on|off)\b/g,'').trim()+(g.noAction?' na-on':' na-off');
   }
   patchGroupSub(roomId,gKey);
   patchRoomSub(roomId);
@@ -825,7 +828,7 @@ function renderPhotosSectionContent(){
   const snCount=photos.filter(p=>p.serialNumber).length;
   const barcodeSupported='BarcodeDetector'in window;
   return`<div class="px-4 pt-5 pb-2 flex items-center justify-between">
-    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+    <p class="text-xs font-semibold uppercase tracking-wider" style="color:rgba(10,14,23,0.4)">
       Photos${photos.length?` (${photos.length})`:''}
     </p>
     ${snCount?`<span class="text-xs text-green-600 font-medium">${snCount} SN${snCount!==1?'s':''} captured</span>`
@@ -891,8 +894,8 @@ function priceBtn(roomId,gKey,itemId,cost,unit,hasOverride){
   btn.dataset.gkey=gKey;
   btn.dataset.item=itemId;
   btn.innerHTML=hasOverride
-    ?`<span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span class="text-gray-300">/ ${esc(unit)}</span>`
-    :`<span class="text-gray-400">${fmtCost(cost)}</span> <span class="text-gray-300">/ ${esc(unit)}</span>`;
+    ?`<span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span style="color:rgba(10,14,23,0.3)">/ ${esc(unit)}</span>`
+    :`<span style="color:rgba(10,14,23,0.4)">${fmtCost(cost)}</span> <span style="color:rgba(10,14,23,0.25)">/ ${esc(unit)}</span>`;
   return btn;
 }
 
@@ -945,7 +948,7 @@ const BTN_DANGER='flex-1 py-3 rounded-xl bg-red-500 text-white font-semibold tex
 
 function renderModalContent(st){
   if(st.mode==='new-proj') return`<div class="p-6">
-    <h3 class="font-bold text-gray-900 text-lg mb-4">New Project</h3>
+    <h3 class="font-bold text-lg mb-4" style="color:#0a0e17">New Project</h3>
     <input id="mf1" type="text" placeholder="Property name or address" autocomplete="off" class="${INPUT_CLS} mb-3"/>
     <input id="mf2" type="text" placeholder="Full address (optional)" autocomplete="off" class="${INPUT_CLS} mb-4"/>
     <div class="flex gap-3">
@@ -954,7 +957,7 @@ function renderModalContent(st){
     </div></div>`;
 
   if(st.mode==='rename-proj') return`<div class="p-6">
-    <h3 class="font-bold text-gray-900 text-lg mb-4">Rename Project</h3>
+    <h3 class="font-bold text-lg mb-4" style="color:#0a0e17">Rename Project</h3>
     <input id="mf1" type="text" value="${esc(proj?.name||'')}" autocomplete="off" class="${INPUT_CLS} mb-3"/>
     <input id="mf2" type="text" value="${esc(proj?.address||'')}" placeholder="Address (optional)" autocomplete="off" class="${INPUT_CLS} mb-4"/>
     <div class="flex gap-3">
@@ -965,7 +968,7 @@ function renderModalContent(st){
   if(st.mode==='rename-room'){
     const room=proj?.rooms.find(r=>r.id===st.roomId);
     return`<div class="p-6">
-      <h3 class="font-bold text-gray-900 text-lg mb-1">Rename Room</h3>
+      <h3 class="font-bold text-lg mb-1" style="color:#0a0e17">Rename Room</h3>
       <p class="text-xs text-gray-400 uppercase tracking-wider mb-4">${esc(room?.label||'')}</p>
       <input id="mf1" type="text" value="${esc(room?.label||'')}" autocomplete="off" class="${INPUT_CLS} mb-4"/>
       <div class="flex gap-3">
@@ -986,7 +989,7 @@ function renderModalContent(st){
         </div>`
       :`<p class="text-sm text-gray-500 mb-4">This room has no data entered.</p>`;
     return`<div class="p-6">
-      <h3 class="font-bold text-gray-900 text-lg mb-3">Remove <span class="text-orange-600">${esc(room?.label||'room')}</span>?</h3>
+      <h3 class="font-bold text-lg mb-3" style="color:#0a0e17">Remove <span style="color:#ea580c">${esc(room?.label||'room')}</span>?</h3>
       ${dataMsg}
       <div class="flex gap-3">
         <button data-modal-cancel class="${BTN_CANCEL}">Keep</button>
@@ -1003,10 +1006,10 @@ function renderModalContent(st){
       :'Using default prices from Pricing List.csv';
     return`<div class="p-6">
       <div class="flex items-center justify-between mb-5">
-        <h3 class="font-bold text-gray-900 text-lg">Settings</h3>
-        <button data-modal-cancel class="text-gray-400 p-2 -mr-2 text-xl leading-none active:text-gray-700">✕</button>
+        <h3 class="font-bold text-lg" style="color:#0a0e17">Settings</h3>
+        <button data-modal-cancel class="p-2 -mr-2 text-xl leading-none active:opacity-50" style="color:rgba(10,14,23,0.4)">✕</button>
       </div>
-      <h4 class="text-sm font-semibold text-gray-700 mb-1">Global Price Schedule</h4>
+      <h4 class="text-sm font-semibold mb-1" style="color:#0a0e17">Global Price Schedule</h4>
       <p class="text-xs text-gray-400 mb-3 leading-relaxed">Upload a CSV to update standard prices across <em>all</em> projects. Use the same format as Pricing List.csv — columns: id, name, cost, unit.</p>
       <div class="${statusCls} rounded-xl px-4 py-2.5 text-sm mb-4">${statusMsg}</div>
       <div class="space-y-2">
@@ -1081,14 +1084,14 @@ function renderItem(room,gKey,itemId){
       ${item.checked?'checked':''}
       data-checkbox data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"/>
     <div class="flex-1 min-w-0">
-      <div class="text-sm font-medium text-gray-800 leading-snug">${esc(def.name)}</div>
+      <div class="text-sm font-medium leading-snug" style="color:#0a0e17">${esc(def.name)}</div>
       ${item.costOverride!=null
-        ?`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span class="text-gray-300">/ ${esc(def.unit)}</span></button>`
-        :`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span class="text-gray-400">${fmtCost(cost)}</span> <span class="text-gray-300">/ ${esc(def.unit)}</span></button>`}
+        ?`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span style="color:rgba(10,14,23,0.3)">/ ${esc(def.unit)}</span></button>`
+        :`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span style="color:rgba(10,14,23,0.4)">${fmtCost(cost)}</span> <span style="color:rgba(10,14,23,0.25)">/ ${esc(def.unit)}</span></button>`}
     </div>
     <div class="flex items-center gap-1.5 flex-shrink-0">
       <input id="qty-${k}" type="number" min="0" step="0.5" inputmode="decimal"
-        class="w-16 text-right bg-gray-50 border border-gray-100 rounded-lg px-2 py-2 font-medium focus:outline-none focus:border-orange-300 focus:bg-white"
+        class="w-16 text-right bg-white border border-gray-200 rounded-lg px-2 py-2 font-medium focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-200"
         value="${item.qty||''}" placeholder="0"
         data-qty data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"/>
       <div id="lt-${k}" class="w-16 text-right text-sm font-semibold text-orange-600 tabular-nums">${lt>0?fmt(lt):''}</div>
@@ -1099,17 +1102,17 @@ function renderItem(room,gKey,itemId){
 function renderCustomItem(room,gKey,ci){
   const k=`${room.id}-${gKey}-ci-${ci.id}`;
   const lt=ci.checked&&ci.qty?(ci.cost||0)*ci.qty:0;
-  return`<div id="irow-${k}" class="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 bg-amber-50/40 ${ci.checked?'':'opacity-40'}">
+  return`<div id="irow-${k}" class="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 bg-orange-50/30 ${ci.checked?'':'opacity-40'}">
     <input type="checkbox" class="w-5 h-5 flex-shrink-0 accent-orange-500 cursor-pointer"
       ${ci.checked?'checked':''}
       data-ci-check data-room="${room.id}" data-gkey="${gKey}" data-ci="${ci.id}"/>
     <div class="flex-1 min-w-0">
-      <div class="text-sm font-medium text-gray-800 leading-snug">${esc(ci.name)}</div>
-      <div class="text-xs text-gray-400">${fmtCost(ci.cost||0)} / ${esc(ci.unit||'ea.')}</div>
+      <div class="text-sm font-medium leading-snug" style="color:#0a0e17">${esc(ci.name)}</div>
+      <div class="text-xs" style="color:rgba(10,14,23,0.4)">${fmtCost(ci.cost||0)} / ${esc(ci.unit||'ea.')}</div>
     </div>
     <div class="flex items-center gap-1.5 flex-shrink-0">
       <input type="number" min="0" step="0.5" inputmode="decimal"
-        class="w-16 text-right bg-amber-50 border border-amber-100 rounded-lg px-2 py-2 font-medium focus:outline-none focus:border-orange-300"
+        class="w-16 text-right bg-white border border-gray-200 rounded-lg px-2 py-2 font-medium focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-200"
         value="${ci.qty||''}" placeholder="0"
         data-ci-qty data-room="${room.id}" data-gkey="${gKey}" data-ci="${ci.id}"/>
       <div class="w-16 text-right text-sm font-semibold text-orange-600 tabular-nums">${lt>0?fmt(lt):''}</div>
@@ -1117,26 +1120,30 @@ function renderCustomItem(room,gKey,ci){
   </div>`;
 }
 
-function renderGroup(room,gKey){
+function renderGroup(room,gKey,projTotal=0){
   const g=room.groups[gKey];
   const def=GROUPS[gKey];
   if(!g||!def)return'';
   const sub=computeGroupSub(room,gKey);
   const isCollapsed=collapsed.has(`${room.id}|${gKey}`);
+  const barPct=projTotal>0?Math.min(Math.round(sub/projTotal*100),100):0;
   return`<div class="border-b border-gray-100 last:border-0">
-    <div class="flex items-center gap-2 px-4 py-3 bg-gray-50 cursor-pointer select-none active:bg-gray-100"
+    <div class="flex items-center gap-2 px-4 py-3 cursor-pointer select-none active:opacity-80 relative overflow-hidden"
+      style="background:#141923"
       data-collapse data-room="${room.id}" data-gkey="${gKey}">
-      <svg id="chev-${room.id}-${gKey}" class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform ${isCollapsed?'-rotate-90':''}"
+      <svg id="chev-${room.id}-${gKey}" class="w-4 h-4 flex-shrink-0 transition-transform ${isCollapsed?'-rotate-90':''}"
+        style="color:rgba(234,229,236,0.45)"
         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
       </svg>
-      <span class="flex-1 text-sm font-semibold text-gray-700">${esc(def.label)}</span>
+      <span class="flex-1 text-sm font-bold" style="color:#eae5ec">${esc(def.label)}</span>
       <span id="nab-${room.id}-${gKey}"
-        class="text-xs px-3 py-1.5 rounded-full font-medium cursor-pointer ${g.noAction?'bg-green-100 text-green-700':'bg-gray-100 text-gray-500'}"
+        class="text-xs px-3 py-1.5 rounded-full font-medium cursor-pointer ${g.noAction?'na-on':'na-off'}"
         data-noaction data-room="${room.id}" data-gkey="${gKey}">
         ${g.noAction?'✓ No Action':'No Action'}
       </span>
-      <span id="gsub-${room.id}-${gKey}" class="text-sm font-semibold text-gray-700 w-16 text-right tabular-nums">${sub>0?fmt(sub):''}</span>
+      <span id="gsub-${room.id}-${gKey}" class="text-sm font-bold w-16 text-right tabular-nums" style="color:#ea580c">${sub>0?fmt(sub):''}</span>
+      <div id="gbar-${room.id}-${gKey}" class="cost-bar" style="width:${barPct}%"></div>
     </div>
     <div id="gb-${room.id}-${gKey}" class="group-body ${isCollapsed?'hidden':''}" style="${g.noAction?'opacity:0.35':''}">
       ${def.items.filter(id=>!g.removedItems.includes(id)).map(id=>renderItem(room,gKey,id)).join('')}
@@ -1145,28 +1152,30 @@ function renderGroup(room,gKey){
   </div>`;
 }
 
-function renderRoom(room){
+function renderRoom(room,projTotal=0){
   const rt=ROOM_TYPES[room.type];
   const sub=computeRoomSub(room);
-  const pencilSvg=`<svg class="w-3 h-3 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+  const roomBarPct=projTotal>0?Math.min(Math.round(sub/projTotal*100),100):0;
+  const pencilSvg=`<svg class="w-3 h-3" style="color:rgba(234,229,236,0.5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
     <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
   </svg>`;
   const closeSvg=`<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
   </svg>`;
   return`<section>
-    <div class="sticky top-14 z-20 flex items-center gap-2 px-4 py-3 bg-gray-800 text-white shadow-sm">
-      <button class="flex items-center gap-1.5 min-w-0 flex-1 group active:opacity-70 text-left"
+    <div class="sticky top-14 z-20 flex items-center gap-2 px-4 py-3 relative overflow-hidden" style="background:#0a0e17">
+      <button class="flex items-center gap-1.5 min-w-0 flex-1 active:opacity-70 text-left"
         data-rename-room="${room.id}" title="Tap to rename">
-        <span class="text-xs font-bold uppercase tracking-widest text-gray-300 truncate">${esc(room.label)}</span>
-        <span class="flex-shrink-0 opacity-40 group-hover:opacity-70">${pencilSvg}</span>
+        <span class="text-xs font-bold uppercase tracking-wider truncate" style="color:#eae5ec;letter-spacing:1px">${esc(room.label)}</span>
+        <span class="flex-shrink-0">${pencilSvg}</span>
       </button>
-      <span id="rsub-${room.id}" class="text-orange-300 font-semibold text-sm tabular-nums flex-shrink-0">${sub>0?fmt(sub):''}</span>
-      ${!rt.singleton?`<button class="text-gray-500 w-9 h-9 flex items-center justify-center rounded-full active:bg-gray-700 flex-shrink-0"
+      <span id="rsub-${room.id}" class="font-bold text-sm tabular-nums flex-shrink-0" style="color:#ea580c">${sub>0?fmt(sub):''}</span>
+      ${!rt.singleton?`<button class="w-9 h-9 flex items-center justify-center rounded-full flex-shrink-0 active:bg-white/10" style="color:rgba(234,229,236,0.5)"
         data-remove-room="${room.id}" title="Remove ${esc(room.label)}">${closeSvg}</button>`:''}
+      <div id="rbar-${room.id}" class="room-cost-bar" style="width:${roomBarPct}%"></div>
     </div>
     <div class="bg-white">
-      ${rt.groups.map(gKey=>renderGroup(room,gKey)).join('')}
+      ${rt.groups.map(gKey=>renderGroup(room,gKey,projTotal)).join('')}
     </div>
   </section>`;
 }
@@ -1174,10 +1183,11 @@ function renderRoom(room){
 function renderAddRoomSection(){
   const nonSingleton=Object.entries(ROOM_TYPES).filter(([,rt])=>!rt.singleton);
   return`<div class="px-4 py-5">
-    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Add Room</p>
+    <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:rgba(10,14,23,0.4)">Add Room</p>
     <div class="flex flex-wrap gap-2">
       ${nonSingleton.map(([type,rt])=>`
-        <button class="px-3.5 py-2 bg-white rounded-xl border border-gray-200 text-sm font-medium text-gray-700 shadow-sm active:bg-gray-50 active:scale-95 transition-transform"
+        <button class="px-3.5 py-2 bg-white rounded-xl text-sm font-semibold active:opacity-60 active:scale-95 transition-transform"
+          style="border:1.5px solid rgba(10,14,23,0.18);color:#0a0e17"
           data-add-room="${type}">+ ${rt.label}</button>
       `).join('')}
     </div>
@@ -1194,20 +1204,20 @@ function renderTriageView(){
   const restTotal=restItems.reduce((s,i)=>s+i.lt,0);
   const maxCost=items[0]?.lt||1;
   const paretoPct=total>0?Math.round(paretoItems.reduce((s,i)=>s+i.lt,0)/total*100):0;
-  const backBtn=`<button data-action="back-to-project" class="p-2 -ml-2 text-gray-700 active:text-gray-900">
+  const backBtn=`<button data-action="back-to-project" class="p-2 -ml-2 active:opacity-60" style="color:#eae5ec">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
     </svg></button>`;
-  const header=`<div class="sticky top-0 z-30 bg-white border-b border-gray-100 pt-safe shadow-sm">
+  const header=`<div class="sticky top-0 z-30 pt-safe" style="background:#0a0e17">
     <div class="flex items-center h-14 px-4 gap-3">
       ${backBtn}
       <div class="flex-1 min-w-0">
-        <div class="font-semibold text-gray-900 text-sm">Cost Triage</div>
-        <div class="text-xs text-gray-400 truncate">${esc(proj.name)}</div>
+        <div class="font-semibold text-sm" style="color:#eae5ec">Cost Triage</div>
+        <div class="text-xs truncate" style="color:rgba(234,229,236,0.55)">${esc(proj.name)}</div>
       </div>
       <div class="text-right flex-shrink-0">
-        <div class="text-xs text-gray-400">total</div>
-        <div class="text-sm font-bold text-gray-900 tabular-nums">${fmt(total)}</div>
+        <div class="text-xs" style="color:rgba(234,229,236,0.55)">total</div>
+        <div class="text-sm font-bold tabular-nums" style="color:#eae5ec">${fmt(total)}</div>
       </div>
     </div>
   </div>`;
@@ -1223,48 +1233,49 @@ function renderTriageView(){
   const itemRows=paretoItems.map((item,i)=>{
     const barPct=Math.round(item.lt/maxCost*100);
     const sharePct=Math.round(item.lt/total*100);
-    return`<div class="px-4 py-3.5 border-b border-gray-50">
+    return`<div class="px-4 py-3.5 border-b border-gray-100">
       <div class="flex items-start gap-3">
-        <span class="text-xl font-bold text-gray-200 w-7 text-right flex-shrink-0 leading-none mt-0.5 tabular-nums">${i+1}</span>
+        <span class="text-xl font-bold w-7 text-right flex-shrink-0 leading-none mt-0.5 tabular-nums" style="color:rgba(94,234,212,0.5)">${i+1}</span>
         <div class="flex-1 min-w-0">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
-              <div class="text-sm font-semibold text-gray-900 leading-snug">${esc(item.name)}</div>
+              <div class="text-sm font-semibold leading-snug" style="color:#0a0e17">${esc(item.name)}</div>
               <div class="text-xs text-gray-400 mt-0.5">${esc(item.room)} · ${esc(item.group)}</div>
             </div>
             <div class="text-right flex-shrink-0">
-              <div class="text-sm font-bold text-orange-600 tabular-nums">${fmt(item.lt)}</div>
+              <div class="text-sm font-bold tabular-nums" style="color:#ea580c">${fmt(item.lt)}</div>
               <div class="text-xs text-gray-400">${sharePct}%</div>
             </div>
           </div>
-          <div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div class="h-full bg-orange-500 rounded-full" style="width:${barPct}%"></div>
+          <div class="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full rounded-full" style="width:${barPct}%;background:#ea580c"></div>
           </div>
         </div>
       </div>
     </div>`;
   }).join('');
-  const restSection=restItems.length?`<div class="bg-gray-50 border-t border-gray-200 px-4 py-4">
+  const restSection=restItems.length?`<div class="border-t px-4 py-4" style="background:#f8f9fb;border-color:#e5e9f0">
     <div class="flex justify-between items-center mb-3">
-      <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Remaining items</span>
-      <span class="text-sm font-semibold text-gray-600 tabular-nums">${fmt(restTotal)} · ${Math.round(restTotal/total*100)}%</span>
+      <span class="text-xs font-semibold uppercase tracking-wider" style="color:rgba(10,14,23,0.45)">Remaining items</span>
+      <span class="text-sm font-semibold tabular-nums" style="color:#0a0e17">${fmt(restTotal)} · ${Math.round(restTotal/total*100)}%</span>
     </div>
     <div class="space-y-1.5">
-      ${restItems.slice(0,6).map(item=>`<div class="flex justify-between items-center text-xs text-gray-500">
-        <span class="truncate mr-2 flex-1">${esc(item.name)}<span class="text-gray-300 ml-1">· ${esc(item.room)}</span></span>
+      ${restItems.slice(0,6).map(item=>`<div class="flex justify-between items-center text-xs" style="color:rgba(10,14,23,0.55)">
+        <span class="truncate mr-2 flex-1">${esc(item.name)}<span class="ml-1" style="color:rgba(10,14,23,0.3)">· ${esc(item.room)}</span></span>
         <span class="flex-shrink-0 tabular-nums font-medium">${fmt(item.lt)}</span>
       </div>`).join('')}
-      ${restItems.length>6?`<div class="text-xs text-gray-400 pt-1">…and ${restItems.length-6} more</div>`:''}
+      ${restItems.length>6?`<div class="text-xs pt-1" style="color:rgba(10,14,23,0.35)">…and ${restItems.length-6} more</div>`:''}
     </div>
   </div>`:'';
   return`${header}
-  <div class="px-4 py-3 bg-orange-50 border-b border-orange-100 flex items-center justify-between">
+  <div class="px-5 py-4 bg-[#EA580C] flex items-center justify-between">
     <div>
-      <p class="text-sm font-semibold text-orange-900">${paretoItems.length} item${paretoItems.length!==1?'s':''} = ${paretoPct}% of total cost</p>
-      <p class="text-xs text-orange-600 mt-0.5">Pareto principle — fix these to move the number most.</p>
+      <p class="text-sm font-bold text-white">${paretoItems.length} item${paretoItems.length!==1?'s':''} = ${paretoPct}% of cost</p>
+      <p class="text-xs text-orange-100 mt-0.5">Fix these first to move the number most.</p>
     </div>
-    <div class="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center flex-shrink-0">
-      <span class="text-white font-bold text-sm">${paretoPct}%</span>
+    <div class="text-right flex-shrink-0 ml-4">
+      <div class="text-3xl font-bold text-white tabular-nums leading-none">${paretoPct}%</div>
+      <div class="text-xs text-orange-200 mt-0.5">of total</div>
     </div>
   </div>
   <div class="bg-white">${itemRows}</div>
@@ -1278,16 +1289,16 @@ function renderTriageView(){
 function renderComparePicker(slot){
   const list=loadList();
   const takenId=slot==='b'?cmpState.a:cmpState.b;
-  return`<div class="sticky top-0 z-30 bg-white border-b border-gray-100 pt-safe shadow-sm">
+  return`<div class="sticky top-0 z-30 pt-safe" style="background:#0a0e17">
     <div class="flex items-center h-14 px-4 gap-3">
-      <button data-action="compare-close" class="p-2 -ml-2 text-gray-700 active:text-gray-900">
+      <button data-action="compare-close" class="p-2 -ml-2 active:opacity-60" style="color:#eae5ec">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
       <div class="flex-1">
-        <div class="font-semibold text-gray-900 text-sm">Compare Projects</div>
-        <div class="text-xs text-gray-400">Pick Project ${slot.toUpperCase()}</div>
+        <div class="font-semibold text-sm" style="color:#eae5ec">Compare Projects</div>
+        <div class="text-xs" style="color:rgba(234,229,236,0.55)">Pick Project ${slot.toUpperCase()}</div>
       </div>
     </div>
   </div>
@@ -1337,29 +1348,29 @@ function renderComparisonResult(pA,pB){
       </div>
       <div class="flex items-center gap-2 mb-1">
         <span class="w-3 h-3 rounded-sm bg-orange-500 flex-shrink-0"></span>
-        <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div class="h-full bg-orange-500 rounded-full transition-all" style="width:${wA}%"></div>
+        <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-[#EA580C] rounded-full transition-all" style="width:${wA}%"></div>
         </div>
         <span class="text-xs text-gray-700 w-14 text-right tabular-nums font-medium">${fmt(sa)}</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="w-3 h-3 rounded-sm bg-blue-500 flex-shrink-0"></span>
-        <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div class="h-full bg-blue-500 rounded-full transition-all" style="width:${wB}%"></div>
+        <span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#5eead4"></span>
+        <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full rounded-full transition-all" style="width:${wB}%;background:#5eead4"></div>
         </div>
         <span class="text-xs text-gray-700 w-14 text-right tabular-nums font-medium">${fmt(sb)}</span>
       </div>
     </div>`;
   }).join('');
-  return`<div class="sticky top-0 z-30 bg-white border-b border-gray-100 pt-safe shadow-sm">
+  return`<div class="sticky top-0 z-30 pt-safe" style="background:#0a0e17">
     <div class="flex items-center h-14 px-4 gap-3">
-      <button data-action="compare-close" class="p-2 -ml-2 text-gray-700 active:text-gray-900">
+      <button data-action="compare-close" class="p-2 -ml-2 active:opacity-60" style="color:#eae5ec">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
-      <span class="flex-1 font-semibold text-gray-900 text-sm">Project Comparison</span>
-      <button data-action="compare-reset" class="text-xs text-orange-500 font-semibold px-3 py-2 active:opacity-70" style="min-height:44px">Reselect</button>
+      <span class="flex-1 font-semibold text-sm" style="color:#eae5ec">Project Comparison</span>
+      <button data-action="compare-reset" class="text-xs font-semibold px-3 py-2 active:opacity-70" style="color:#5eead4;min-height:44px">Reselect</button>
     </div>
   </div>
   <div class="grid grid-cols-2 gap-3 px-4 pt-4 pb-1">
@@ -1370,30 +1381,31 @@ function renderComparisonResult(pA,pB){
       </div>
       <div class="font-semibold text-gray-900 text-sm leading-snug truncate">${esc(pA.name)}</div>
       ${pA.address?`<div class="text-xs text-gray-500 truncate mt-0.5">${esc(pA.address)}</div>`:''}
-      <div class="text-xl font-bold text-gray-900 mt-2 tabular-nums">${fmt(totA)}</div>
+      <div class="text-2xl font-bold text-[#111827] mt-2 tabular-nums">${fmt(totA)}</div>
       <div class="text-xs text-gray-500 mt-0.5">${pctA}% reviewed</div>
     </div>
-    <div class="bg-blue-50 border border-blue-100 rounded-2xl p-3.5">
+    <div class="rounded-2xl p-3.5" style="background:#0a0e17">
       <div class="flex items-center gap-1.5 mb-1">
-        <span class="w-2.5 h-2.5 rounded-sm bg-blue-500 flex-shrink-0"></span>
-        <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Project B</span>
+        <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:#5eead4"></span>
+        <span class="text-[10px] font-bold uppercase tracking-wider" style="color:#5eead4">Project B</span>
       </div>
-      <div class="font-semibold text-gray-900 text-sm leading-snug truncate">${esc(pB.name)}</div>
-      ${pB.address?`<div class="text-xs text-gray-500 truncate mt-0.5">${esc(pB.address)}</div>`:''}
-      <div class="text-xl font-bold text-gray-900 mt-2 tabular-nums">${fmt(totB)}</div>
-      <div class="text-xs text-gray-500 mt-0.5">${pctB}% reviewed</div>
+      <div class="font-semibold text-sm leading-snug truncate" style="color:#eae5ec">${esc(pB.name)}</div>
+      ${pB.address?`<div class="text-xs truncate mt-0.5" style="color:rgba(234,229,236,0.5)">${esc(pB.address)}</div>`:''}
+      <div class="text-2xl font-bold mt-2 tabular-nums" style="color:#eae5ec">${fmt(totB)}</div>
+      <div class="text-xs mt-0.5" style="color:rgba(234,229,236,0.5)">${pctB}% reviewed</div>
     </div>
   </div>
-  ${diff>0?`<div class="mx-4 my-3 px-4 py-2.5 rounded-xl ${cheaper==='a'?'bg-green-50 border border-green-100':'bg-blue-50 border border-blue-100'} flex items-center justify-center gap-2">
-    <span class="text-sm font-semibold ${cheaper==='a'?'text-green-700':'text-blue-700'}">
+  ${diff>0?`<div class="mx-4 my-3 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2"
+    style="${cheaper==='a'?'background:#fef9f0;border:1px solid #fed7aa':'background:#0a0e17'}">
+    <span class="text-sm font-semibold" style="${cheaper==='a'?'color:#92400e':'color:#5eead4'}">
       Project ${cheaper.toUpperCase()} is ${fmt(diff)} less expensive (${diffPct}% cheaper)
     </span>
-  </div>`:'<div class="mx-4 my-3 px-4 py-2.5 rounded-xl bg-gray-50 text-center text-sm text-gray-500 font-medium">Projects have equal estimated cost</div>'}
+  </div>`:'<div class="mx-4 my-3 px-4 py-2.5 rounded-xl text-center text-sm font-medium" style="background:#f8f9fb;color:rgba(10,14,23,0.5)">Projects have equal estimated cost</div>'}
   <div class="px-4 pb-6">
     <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Cost by Section</p>
     <div class="flex items-center gap-4 mb-4">
       <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-orange-500"></span><span class="text-xs text-gray-600">Project A</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-blue-500"></span><span class="text-xs text-gray-600">Project B</span></div>
+      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm" style="background:#5eead4"></span><span class="text-xs text-gray-600">Project B</span></div>
     </div>
     ${sectionRows}
   </div>`;
@@ -1418,28 +1430,28 @@ function renderProject(){
   const costTotal=computeTotal(proj);
   const{pct,done,total:grpTotal}=progressStats(proj);
   return`
-    <div class="sticky top-0 z-30 bg-white border-b border-gray-100 pt-safe shadow-sm">
+    <div class="sticky top-0 z-30 pt-safe" style="background:#0a0e17">
       <div class="flex items-center h-14 px-4 gap-3">
-        <button data-open-side class="p-2 -ml-2 text-gray-700 active:text-gray-900">
+        <button data-open-side class="p-2 -ml-2 active:opacity-60" style="color:#eae5ec">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
           </svg>
         </button>
         <div class="flex-1 min-w-0">
-          <div class="font-semibold text-gray-900 text-sm leading-tight truncate">${esc(proj.name)}</div>
-          ${proj.address?`<div class="text-xs text-gray-400 truncate">${esc(proj.address)}</div>`:''}
+          <div class="font-semibold text-sm leading-tight truncate" style="color:#eae5ec">${esc(proj.name)}</div>
+          ${proj.address?`<div class="text-xs truncate" style="color:rgba(234,229,236,0.55)">${esc(proj.address)}</div>`:''}
         </div>
-        <button data-action="open-triage" class="p-2 text-gray-400 active:text-gray-700" title="Cost triage">
+        <button data-action="open-triage" class="p-2 active:opacity-60" style="color:rgba(234,229,236,0.6)" title="Cost triage">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
           </svg>
         </button>
-        <button data-action="rename-proj" class="p-2 text-gray-400 active:text-gray-700" title="Rename project">
+        <button data-action="rename-proj" class="p-2 active:opacity-60" style="color:rgba(234,229,236,0.6)" title="Rename project">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
           </svg>
         </button>
-        <button data-action="open-settings" class="p-2 -mr-2 relative text-gray-400 active:text-gray-700" title="Settings / pricing">
+        <button data-action="open-settings" class="p-2 -mr-2 relative active:opacity-60" style="color:rgba(234,229,236,0.6)" title="Settings / pricing">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
@@ -1448,7 +1460,7 @@ function renderProject(){
       </div>
     </div>
     <div style="min-height:calc(100vh - 56px - 72px)">
-      ${proj.rooms.map(r=>renderRoom(r)).join('')}
+      ${proj.rooms.map(r=>renderRoom(r,costTotal)).join('')}
       ${renderAddRoomSection()}
       <div id="photos-section" class="bg-white border-t border-gray-100 mt-2">
         ${renderPhotosSectionContent()}
@@ -1457,16 +1469,17 @@ function renderProject(){
     <div class="sticky bottom-0 z-30 bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
       <div class="h-1.5 bg-gray-100 overflow-hidden">
         <div id="progress-bar"
-          class="h-full transition-all duration-500 ease-out ${pct===100?'bg-green-500':'bg-orange-500'}"
-          style="width:${pct}%"></div>
+          class="h-full transition-all duration-500 ease-out"
+          style="width:${pct}%;background:${pct===100?'#5eead4':'#ea580c'}"></div>
       </div>
       <div class="flex items-center justify-between px-5 pt-3 pb-4 safe-bot">
         <div>
           <div id="progress-txt"
-            class="text-xs font-medium mb-0.5 ${pct===100?'text-green-600':'text-gray-400'}">
+            class="text-xs font-medium mb-0.5"
+            style="color:${pct===100?'#0d9488':'#9ca3af'}">
             ${pct===100?`All ${grpTotal} groups reviewed`:`${pct}% · ${done} of ${grpTotal} groups reviewed`}
           </div>
-          <div id="footer-total" class="text-2xl font-bold text-gray-900 tabular-nums">${fmt(costTotal)}</div>
+          <div id="footer-total" class="text-3xl font-bold text-[#111827] tabular-nums">${fmt(costTotal)}</div>
         </div>
         <button data-action="export"
           class="px-5 py-3 bg-orange-500 text-white font-semibold rounded-xl text-sm active:opacity-75 select-none">
@@ -1480,21 +1493,33 @@ function renderProject(){
 function renderWelcome(){
   const list=loadList();
   return`
-    <div class="min-h-screen flex flex-col items-center justify-center p-6 text-center pt-safe">
-      <div class="w-20 h-20 rounded-[28px] bg-orange-500 flex items-center justify-center mb-6 shadow-xl">
-        <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75V21a.75.75 0 01-.75.75H3.75A.75.75 0 013 21V9.75z"/>
-          <path stroke-linecap="round" stroke-linejoin="round" d="M9 21V12h6v9"/>
-        </svg>
+    <div class="min-h-screen flex flex-col">
+      <div class="pt-safe flex-shrink-0" style="background:#0a0e17">
+        <div class="flex items-center h-14 px-4 gap-3">
+          <button data-open-side class="p-2 -ml-2 active:opacity-60" style="color:rgba(234,229,236,0.6);min-width:44px;min-height:44px">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+          <span class="font-semibold text-base" style="color:#eae5ec">Spark Estimator</span>
+        </div>
       </div>
-      <h1 class="text-2xl font-bold text-gray-900 mb-2">Spark Estimator</h1>
-      <p class="text-gray-500 mb-10 text-sm max-w-xs leading-relaxed">Fast repair cost estimates during property walkthroughs.</p>
-      <button data-open-modal class="w-full max-w-xs py-4 bg-orange-500 text-white rounded-2xl font-semibold text-base shadow-lg active:opacity-75 active:scale-95 transition-transform">
-        + Start New Project
-      </button>
-      ${list.length>0?`<button data-open-side class="mt-5 text-orange-600 font-medium text-sm py-2">
-        View ${list.length} existing project${list.length!==1?'s':''} →
-      </button>`:''}
+      <div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-20 h-20 rounded-[28px] bg-orange-500 flex items-center justify-center mb-6 shadow-xl">
+          <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75V21a.75.75 0 01-.75.75H3.75A.75.75 0 013 21V9.75z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 21V12h6v9"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Spark Estimator</h1>
+        <p class="text-gray-500 mb-10 text-sm max-w-xs leading-relaxed">Fast repair cost estimates during property walkthroughs.</p>
+        <button data-open-modal class="w-full max-w-xs py-4 bg-orange-500 text-white rounded-2xl font-semibold text-base shadow-lg active:opacity-75 active:scale-95 transition-transform">
+          + Start New Project
+        </button>
+        ${list.length>0?`<button data-open-side class="mt-5 text-orange-600 font-medium text-sm py-2">
+          View ${list.length} existing project${list.length!==1?'s':''} →
+        </button>`:''}
+      </div>
     </div>
   `;
 }
@@ -1513,11 +1538,12 @@ function refreshPanelList(){
   document.getElementById('panel-list').innerHTML=list.length===0
     ?'<p class="text-sm text-gray-400 text-center py-8 px-4">No projects yet</p>'
     :list.map(p=>`
-      <button class="w-full text-left px-4 py-3.5 active:bg-gray-50 ${proj&&p.id===proj.id?'bg-orange-50 border-l-2 border-orange-400':''}"
+      <button class="w-full text-left px-4 py-3.5 active:bg-gray-50 ${proj&&p.id===proj.id?'border-l-[3px]':''}"
+        style="${proj&&p.id===proj.id?'background:rgba(94,234,212,0.07);border-color:#5eead4':''}"
         data-switch="${p.id}">
-        <div class="font-medium text-sm text-gray-800 truncate">${esc(p.name)}</div>
+        <div class="font-semibold text-sm truncate" style="color:#0a0e17">${esc(p.name)}</div>
         ${p.address?`<div class="text-xs text-gray-400 truncate mt-0.5">${esc(p.address)}</div>`:''}
-        <div class="text-xs text-gray-300 mt-0.5">${new Date(p.updatedAt).toLocaleDateString()}</div>
+        <div class="text-xs text-gray-400 mt-0.5">${new Date(p.updatedAt).toLocaleDateString()}</div>
       </button>
     `).join('');
 }

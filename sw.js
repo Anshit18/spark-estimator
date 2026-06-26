@@ -1,4 +1,4 @@
-const CACHE = 'spark-v2';
+const CACHE = 'spark-v7';
 const PRECACHE = [
   './index.html',
   './manifest.json',
@@ -25,6 +25,25 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+
+  // Navigation (page loads): network-first so updated HTML shows immediately.
+  // Falls back to cached index.html when offline.
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match('./index.html').then(r => r || new Response('Offline', {status: 503})))
+    );
+    return;
+  }
+
+  // Everything else (CDN assets, manifest): cache-first for speed.
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
@@ -34,13 +53,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, clone));
         }
         return res;
-      }).catch(() => {
-        // For navigation requests (page loads while offline), serve cached index.html
-        if (e.request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-        return cached || new Response('Offline', { status: 503 });
-      });
+      }).catch(() => new Response('Offline', {status: 503}));
     })
   );
 });
