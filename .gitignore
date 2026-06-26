@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Submission documents — delivered separately, not part of the repo
+writeup.html
+spark-estimator-writeup.pdf
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local test artifacts
+*.log

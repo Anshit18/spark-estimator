@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Spark Estimator" />
+  <title>Spark Estimator</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ea580c" />
+  <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+    html{height:100%}
+    body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
+    .safe-bot{padding-bottom:max(16px,env(safe-area-inset-bottom))}
+    .pt-safe{padding-top:max(0px,env(safe-area-inset-top))}
+    #side-panel{transition:transform .25s cubic-bezier(.4,0,.2,1)}
+  </style>
+</head>
+<body class="bg-slate-100">
+
+<!-- ── Side panel ─────────────────────────────────────────────────────── -->
+<div id="panel-overlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
+<div id="side-panel" class="fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-2xl -translate-x-full flex flex-col">
+  <div class="bg-gray-900 text-white px-4 pt-safe flex-shrink-0">
+    <div class="flex items-center justify-between py-4 mt-1">
+      <span class="font-bold text-lg">Projects</span>
+      <button id="close-panel" class="text-gray-400 p-2 text-xl leading-none active:text-white">✕</button>
+    </div>
+  </div>
+  <div id="panel-list" class="flex-1 overflow-y-auto divide-y divide-gray-50"></div>
+  <div class="p-4 border-t border-gray-100 flex-shrink-0 safe-bot">
+    <button id="panel-new" class="w-full py-3 rounded-xl bg-orange-500 text-white font-semibold text-sm active:opacity-75">+ New Project</button>
+  </div>
+</div>
+
+<!-- ── Modal ─────────────────────────────────────────────────────────── -->
+<div id="modal" class="fixed inset-0 z-[60] hidden">
+  <div id="modal-bg" class="absolute inset-0 bg-black/60"></div>
+  <div class="absolute inset-0 overflow-y-auto pointer-events-none">
+    <div class="flex min-h-full items-center justify-center p-5">
+      <div id="modal-box" class="bg-white rounded-2xl shadow-2xl w-full max-w-sm pointer-events-auto my-auto"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── App root ───────────────────────────────────────────────────────── -->
+<div id="app" class="max-w-lg mx-auto"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// CATALOG — 108 items verbatim from Pricing List.csv
+// ═══════════════════════════════════════════════════════════════════════════
+const CATALOG = {
+  'ig-01':{name:'Refinish Hardwood Floor',cost:2.35,unit:'sqft'},
+  'ig-02':{name:'New Hardwoods 1.5"',cost:10.00,unit:'sqft'},
+  'ig-03':{name:'New Hardwoods 2"',cost:4.75,unit:'sqft'},
+  'ig-04':{name:'Hardwood Splicing',cost:8.40,unit:'sqft'},
+  'ig-05':{name:'Vinyl Plank',cost:2.50,unit:'sqft'},
+  'ig-06':{name:'Carpet',cost:1.90,unit:'sqft'},
+  'ig-07':{name:'Interior Paint — 2 Tone',cost:2.95,unit:'sqft'},
+  'ig-08':{name:'Drywall Repair',cost:900.00,unit:'1,000 sqft'},
+  'ig-09':{name:'Wallpaper Removal',cost:250.00,unit:'room'},
+  'ig-10':{name:'Interior Door — Hollow Slab',cost:125.00,unit:'ea.'},
+  'ig-11':{name:'Interior Door Hardware (Knob + Hinges + Labor)',cost:25.00,unit:'ea.'},
+  'ig-12':{name:'Bifold Door with Framing',cost:400.00,unit:'ea.'},
+  'ig-13':{name:'Interior Door — Pre-hung',cost:200.00,unit:'ea.'},
+  'ig-14':{name:'Front Entry Door',cost:475.00,unit:'ea.'},
+  'ig-15':{name:'Front Entry Door Hardware',cost:80.00,unit:'ea.'},
+  'ig-16':{name:'Exterior Door Hardware',cost:75.00,unit:'handle'},
+  'ig-17':{name:'Exterior Insulated Side Door (Installed)',cost:500.00,unit:'ea.'},
+  'ig-18':{name:'Sliding Glass Door',cost:1025.00,unit:'ea.'},
+  'ig-19':{name:'Trim Out (Casing, Crown, Baseboard)',cost:3.75,unit:'LF'},
+  'ig-20':{name:'MISC / Punch List',cost:2650.00,unit:'flat'},
+  'ig-21':{name:'Finish Out Labor',cost:1350.00,unit:'flat'},
+  'ig-22':{name:'Light Fixtures',cost:70.00,unit:'100 sqft'},
+  'ig-23':{name:'Bedbug Spray / Heat Treat',cost:475.00,unit:'ea.'},
+  'ig-24':{name:'Termite Treatment',cost:650.00,unit:'ea.'},
+  'ig-25':{name:'Demo',cost:1375.00,unit:'variable'},
+  'ig-26':{name:'Haul Off',cost:725.00,unit:'load'},
+  'ig-27':{name:'Final Cleaning',cost:325.00,unit:'flat'},
+  'ig-28':{name:'Staging',cost:0.90,unit:'sqft'},
+  'kt-01':{name:'Hinges and Pulls',cost:275.00,unit:'kitchen'},
+  'kt-02':{name:'Cabinets Uppers',cost:125.00,unit:'LF'},
+  'kt-03':{name:'Cabinets Lowers',cost:150.00,unit:'LF'},
+  'kt-04':{name:'Cabinet Door Faces Only',cost:80.00,unit:'door'},
+  'kt-05':{name:'Cabinets (Labor & Paint)',cost:1100.00,unit:'kitchen'},
+  'kt-06':{name:'Granite + 4" Splash Guard',cost:40.00,unit:'LF'},
+  'kt-07':{name:'Backsplash',cost:725.00,unit:'house'},
+  'kt-08':{name:'Misc Woodwork',cost:500.00,unit:'variable'},
+  'kt-09':{name:'Tile — Large Areas',cost:6.45,unit:'sqft'},
+  'kt-10':{name:'Tile — Small Areas',cost:10.00,unit:'sqft'},
+  'kt-11':{name:'Undermount Kitchen Sink',cost:325.00,unit:'ea.'},
+  'kt-12':{name:'Microwave / Hood',cost:500.00,unit:'ea.'},
+  'kt-13':{name:'Range',cost:725.00,unit:'ea.'},
+  'kt-14':{name:'Wall Oven',cost:1075.00,unit:'ea.'},
+  'kt-15':{name:'Cooktop',cost:550.00,unit:'ea.'},
+  'kt-16':{name:'Dishwasher',cost:575.00,unit:'ea.'},
+  'kt-17':{name:'Fridge',cost:1175.00,unit:'ea.'},
+  'ba-01':{name:'Granite ($/LF)',cost:35.00,unit:'LF'},
+  'ba-02':{name:'New Bottom Vanity',cost:125.00,unit:'LF'},
+  'ba-03':{name:'Home Depot Vanity w/ Sink (18")',cost:225.00,unit:'ea.'},
+  'ba-04':{name:'Toilet',cost:150.00,unit:'ea.'},
+  'ba-05':{name:'Tile — Large Areas',cost:5.80,unit:'sqft'},
+  'ba-06':{name:'Tile — Small Areas',cost:10.00,unit:'sqft'},
+  'ba-07':{name:'Reglaze Tub or Chemical Clean',cost:350.00,unit:'ea.'},
+  'ba-08':{name:'Reglaze Tub + Surround',cost:750.00,unit:'ea.'},
+  'ba-09':{name:'Reglaze Shower',cost:1325.00,unit:'ea.'},
+  'ba-10':{name:'Tiled Shower Tear Out + Tile Install',cost:3100.00,unit:'ea.'},
+  'ba-11':{name:'Tub Tile Surround Tear Out + Tile Install (incl. tub)',cost:2250.00,unit:'ea.'},
+  'ba-12':{name:'Shower Plastic Insert Tear Out + New Insert',cost:825.00,unit:'ea.'},
+  'ba-13':{name:'Tub Tear Out + New Insert & Tub',cost:1575.00,unit:'ea.'},
+  'ba-14':{name:'Undermount Sink',cost:150.00,unit:'ea.'},
+  'ba-15':{name:'Mirror',cost:200.00,unit:'ea.'},
+  'ba-16':{name:'HVL (needed if no window)',cost:275.00,unit:'ea.'},
+  'as-01':{name:'Furnace',cost:3350.00,unit:'ea.'},
+  'as-02':{name:'Condensing Unit',cost:3300.00,unit:'ea.'},
+  'as-03':{name:'Package Unit',cost:4700.00,unit:'ea.'},
+  'as-04':{name:'A-Coil (if no condensing unit)',cost:1625.00,unit:'ea.'},
+  'as-05':{name:'Ducting (if NO HVAC)',cost:3200.00,unit:'ea.'},
+  'as-06':{name:'Duct Cleaning — Floor Vents',cost:550.00,unit:'ea.'},
+  'as-07':{name:'Window Unit Replacement 220',cost:575.00,unit:'ea.'},
+  'as-08':{name:'Hot Water Heater w/ Expansion Tank',cost:1425.00,unit:'ea.'},
+  'as-09':{name:'Hot Water Heater Expansion Tank Only',cost:200.00,unit:'ea.'},
+  'as-10':{name:'Switches / Outlets',cost:1400.00,unit:'house'},
+  'as-11':{name:'Standard Electrical',cost:1650.00,unit:'house'},
+  'as-12':{name:'Subfloor',cost:8.20,unit:'sqft'},
+  'as-13':{name:'Framing',cost:950.00,unit:'variable'},
+  'as-14':{name:'Structural (Pier)',cost:375.00,unit:'pier'},
+  'as-15':{name:'Structural Foam Injection',cost:5.85,unit:'sqft of affected area'},
+  'as-16':{name:'Roof',cost:1100.00,unit:'225 sqft L&M'},
+  'as-17':{name:'Plumbing',cost:1000.00,unit:'variable'},
+  'as-18':{name:'Electrical Panel Swap to 200A',cost:2350.00,unit:'ea.'},
+  'as-19':{name:'Full Electrical Rewire (to Studs)',cost:5.65,unit:'sqft'},
+  'as-20':{name:'Full Electrical Rewire (leaving Drywall)',cost:9.15,unit:'sqft'},
+  'as-21':{name:'Wall Insulation (to Studs)',cost:1.20,unit:'sqft'},
+  'as-22':{name:'Attic Insulation',cost:1225.00,unit:'1,600 sqft house'},
+  'as-23':{name:'New Drywall to Studs (L&M)',cost:5.20,unit:'sqft'},
+  'as-24':{name:'Aluminum Wiring',cost:2450.00,unit:'variable'},
+  'ex-01':{name:'Fence Repair — Chain Link / Wood Gate',cost:225.00,unit:'variable'},
+  'ex-02':{name:'Fence Repair — Chain Link',cost:275.00,unit:'LF'},
+  'ex-03':{name:'Fence Repair — Privacy 6ft',cost:30.00,unit:'LF'},
+  'ex-04':{name:'Landscaping',cost:450.00,unit:'variable'},
+  'ex-05':{name:"Vinyl Siding (10'×10')",cost:300.00,unit:'square'},
+  'ex-06':{name:'Tuck Pointing',cost:225.00,unit:'variable'},
+  'ex-07':{name:'Exterior Paint',cost:2.60,unit:'sqft'},
+  'ex-08':{name:'Exterior Wood Repair',cost:525.00,unit:'variable'},
+  'ex-09':{name:"Siding Repair (10'×10')",cost:975.00,unit:'section'},
+  'ex-10':{name:'Tree Trimming',cost:450.00,unit:'variable'},
+  'ex-11':{name:'Tree Removal (w/o stump)',cost:1450.00,unit:'tree'},
+  'ex-12':{name:'Stump Grinding',cost:250.00,unit:'stump'},
+  'ex-13':{name:'Aluminum Window Paint (Int/Ext)',cost:700.00,unit:'house'},
+  'ex-14':{name:'Windows (3×5 sash)',cost:425.00,unit:'ea.'},
+  'ex-15':{name:'Window Repair — Non-Insulated (6×6+)',cost:35.00,unit:'sf'},
+  'ex-16':{name:'Window Repair — Insulated (6×6+)',cost:40.00,unit:'sf'},
+  'ex-17':{name:'Aluminum Framed Window Pane',cost:100.00,unit:'pane'},
+  'ex-18':{name:'Guttering',cost:4.15,unit:'LF'},
+  'ex-19':{name:'Concrete w/ Demo',cost:200.00,unit:'sqft'},
+  'ex-20':{name:'Mowing (summer, every 2 weeks)',cost:45.00,unit:'mowing'},
+  'ex-21':{name:'Garage Door — 1 Car',cost:975.00,unit:'ea.'},
+  'ex-22':{name:'Garage Door — 2 Car (Installed)',cost:1225.00,unit:'ea.'},
+  'ex-23':{name:'Garage Conversion',cost:8850.00,unit:'ea.'},
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GROUPS — 19 collapsible groups
+// ═══════════════════════════════════════════════════════════════════════════
+const GROUPS = {
+  flooring:          {label:'Flooring',              items:['ig-01','ig-02','ig-03','ig-04','ig-05','ig-06']},
+  paint_wall:        {label:'Paint & Wall Repair',   items:['ig-07','ig-08','ig-09']},
+  doors:             {label:'Doors',                 items:['ig-10','ig-11','ig-12','ig-13','ig-14','ig-15','ig-16','ig-17','ig-18','ig-19']},
+  pest_control:      {label:'Pest Control & General',items:['ig-20','ig-21','ig-22','ig-23','ig-24','ig-25','ig-26','ig-27','ig-28']},
+  cabinets:          {label:'Cabinets',              items:['kt-01','kt-02','kt-03','kt-04','kt-05','kt-08']},
+  countertops_tile:  {label:'Countertops & Tile',    items:['kt-06','kt-07','kt-09','kt-10']},
+  appliances:        {label:'Appliances',            items:['kt-11','kt-12','kt-13','kt-14','kt-15','kt-16','kt-17']},
+  vanity:            {label:'Vanity & Countertop',   items:['ba-01','ba-02','ba-03','ba-04','ba-14','ba-15','ba-16']},
+  tub_shower:        {label:'Tub & Shower',          items:['ba-07','ba-08','ba-09','ba-10','ba-11','ba-12','ba-13']},
+  tile_ba:           {label:'Tile',                  items:['ba-05','ba-06']},
+  hvac:              {label:'HVAC',                  items:['as-01','as-02','as-03','as-04','as-05','as-06','as-07','as-08','as-09']},
+  electrical:        {label:'Electrical',            items:['as-10','as-11','as-18','as-19','as-20','as-24']},
+  structural:        {label:'Structural',            items:['as-12','as-13','as-14','as-15','as-16','as-17']},
+  insulation_drywall:{label:'Insulation & Drywall',  items:['as-21','as-22','as-23']},
+  fence:             {label:'Fence',                 items:['ex-01','ex-02','ex-03']},
+  siding:            {label:'Siding',                items:['ex-04','ex-05','ex-06','ex-07','ex-08','ex-09','ex-19','ex-20']},
+  windows:           {label:'Windows',               items:['ex-13','ex-14','ex-15','ex-16','ex-17','ex-18']},
+  garage:            {label:'Garage',                items:['ex-21','ex-22','ex-23']},
+  trees:             {label:'Trees',                 items:['ex-10','ex-11','ex-12']},
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ROOM TYPES
+// ═══════════════════════════════════════════════════════════════════════════
+const ROOM_TYPES = {
+  interior:{label:'Interior / General',  groups:['flooring','paint_wall','doors','pest_control'],           singleton:true},
+  systems: {label:'Systems & Structure', groups:['hvac','electrical','structural','insulation_drywall'],    singleton:true},
+  exterior:{label:'Exterior',            groups:['fence','siding','windows','garage','trees'],              singleton:true},
+  kitchen: {label:'Kitchen',             groups:['cabinets','countertops_tile','appliances'],               singleton:false},
+  bathroom:{label:'Bathroom',            groups:['vanity','tub_shower','tile_ba'],                          singleton:false},
+  bedroom: {label:'Bedroom',             groups:['flooring','paint_wall','doors'],                          singleton:false},
+  living:  {label:'Living / Common Area',groups:['flooring','paint_wall','doors'],                          singleton:false},
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════════════════════════════════
+const LS = {
+  get(k,d=null){try{const v=localStorage.getItem(k);return v!==null?JSON.parse(v):d}catch{return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.error('LS full',e)}},
+  rm(k){localStorage.removeItem(k)},
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA MODEL
+// ═══════════════════════════════════════════════════════════════════════════
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+
+function makeGroupState(gKey){
+  const items={};
+  (GROUPS[gKey]?.items||[]).forEach(id=>{items[id]={qty:0,checked:false,costOverride:null}});
+  return {noAction:false,items,customItems:[],removedItems:[]};
+}
+
+function makeRoom(type,label){
+  const groups={};
+  ROOM_TYPES[type].groups.forEach(gKey=>{groups[gKey]=makeGroupState(gKey)});
+  return {id:uid(),type,label,groups};
+}
+
+function makeProject(name,address=''){
+  return {
+    id:uid(), name, address,
+    createdAt:Date.now(), updatedAt:Date.now(),
+    rooms:[
+      makeRoom('interior','Interior / General'),
+      makeRoom('systems', 'Systems & Structure'),
+      makeRoom('exterior','Exterior'),
+      makeRoom('kitchen', 'Kitchen'),
+      makeRoom('bathroom','Bathroom 1'),
+    ],
+    priceOverrides:{},
+    photos:[],
+    notes:'',
+  };
+}
+
+function loadList()    {return LS.get('spark_projects',[])}
+function saveList(l)   {LS.set('spark_projects',l)}
+function loadProj(id)  {return LS.get(`spark_proj_${id}`,null)}
+function saveProj(p){
+  p.updatedAt=Date.now();
+  LS.set(`spark_proj_${p.id}`,p);
+  const list=loadList();
+  const i=list.findIndex(x=>x.id===p.id);
+  const s={id:p.id,name:p.name,address:p.address,updatedAt:p.updatedAt};
+  if(i>=0)list[i]=s; else list.unshift(s);
+  saveList(list);
+}
+function deleteProj(id){
+  LS.rm(`spark_proj_${id}`);
+  saveList(loadList().filter(p=>p.id!==id));
+  if(LS.get('spark_active')===id)LS.rm('spark_active');
+}
+function getActiveId() {return LS.get('spark_active',null)}
+function setActiveId(id){LS.set('spark_active',id)}
+function getGlobalPrices(){return LS.get('spark_gprices',{})}
+function setGlobalPrices(p){LS.set('spark_gprices',p)}
+
+function effectiveCost(itemId,p,itemState){
+  const gp=getGlobalPrices();
+  return itemState?.costOverride??p.priceOverrides[itemId]??gp[itemId]??CATALOG[itemId]?.cost??0;
+}
+
+function computeTotal(p){
+  let t=0;
+  for(const room of p.rooms)
+    for(const[,g]of Object.entries(room.groups)){
+      if(g.noAction)continue;
+      for(const[id,item]of Object.entries(g.items)){
+        if(!item.checked||!item.qty||g.removedItems.includes(id))continue;
+        t+=effectiveCost(id,p,item)*item.qty;
+      }
+      for(const ci of g.customItems){if(ci.checked&&ci.qty)t+=(ci.cost||0)*ci.qty}
+    }
+  return t;
+}
+
+function computeGroupSub(room,gKey){
+  const g=room.groups[gKey];
+  if(!g||g.noAction)return 0;
+  let t=0;
+  for(const[id,item]of Object.entries(g.items)){
+    if(item.checked&&item.qty&&!g.removedItems.includes(id))
+      t+=effectiveCost(id,proj,item)*item.qty;
+  }
+  for(const ci of g.customItems){if(ci.checked&&ci.qty)t+=(ci.cost||0)*ci.qty}
+  return t;
+}
+
+function computeRoomSub(room){
+  return Object.keys(room.groups).reduce((s,gKey)=>s+computeGroupSub(room,gKey),0);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════════════════════════
+let proj=null;
+const collapsed=new Set();
+let modalSt=null;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FORMATTERS
+// ═══════════════════════════════════════════════════════════════════════════
+function fmt(n){return'$'+Math.round(n||0).toLocaleString('en-US')}
+function fmtCost(n){return'$'+(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODAL SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════
+const INPUT_CLS='w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-400 focus:bg-white';
+const BTN_CANCEL='flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm active:bg-gray-50';
+const BTN_OK    ='flex-1 py-3 rounded-xl bg-orange-500 text-white font-semibold text-sm active:opacity-75';
+const BTN_DANGER='flex-1 py-3 rounded-xl bg-red-500 text-white font-semibold text-sm active:opacity-75';
+
+function renderModalContent(st){
+  if(st.mode==='new-proj') return`<div class="p-6">
+    <h3 class="font-bold text-gray-900 text-lg mb-4">New Project</h3>
+    <input id="mf1" type="text" placeholder="Property name or address" autocomplete="off" class="${INPUT_CLS} mb-3"/>
+    <input id="mf2" type="text" placeholder="Full address (optional)" autocomplete="off" class="${INPUT_CLS} mb-4"/>
+    <div class="flex gap-3">
+      <button data-modal-cancel class="${BTN_CANCEL}">Cancel</button>
+      <button data-modal-confirm class="${BTN_OK}">Create</button>
+    </div></div>`;
+
+  if(st.mode==='rename-proj') return`<div class="p-6">
+    <h3 class="font-bold text-gray-900 text-lg mb-4">Rename Project</h3>
+    <input id="mf1" type="text" value="${esc(proj?.name||'')}" autocomplete="off" class="${INPUT_CLS} mb-3"/>
+    <input id="mf2" type="text" value="${esc(proj?.address||'')}" placeholder="Address (optional)" autocomplete="off" class="${INPUT_CLS} mb-4"/>
+    <div class="flex gap-3">
+      <button data-modal-cancel class="${BTN_CANCEL}">Cancel</button>
+      <button data-modal-confirm class="${BTN_OK}">Save</button>
+    </div></div>`;
+
+  return'';
+}
+
+function openModal(mode,extra={}){
+  modalSt={mode,...extra};
+  document.getElementById('modal-box').innerHTML=renderModalContent(modalSt);
+  document.getElementById('modal').classList.remove('hidden');
+  setTimeout(()=>{
+    const inp=document.getElementById('mf1');
+    if(inp){inp.focus();inp.scrollIntoView({behavior:'smooth',block:'center'});}
+  },80);
+}
+function closeModal(){
+  document.getElementById('modal').classList.add('hidden');
+  modalSt=null;
+}
+function confirmModal(){
+  const{mode}=modalSt||{};
+  if(mode==='new-proj'||mode==='rename-proj'){
+    const name=document.getElementById('mf1')?.value.trim();
+    if(!name){document.getElementById('mf1')?.focus();return;}
+    const addr=document.getElementById('mf2')?.value.trim()||'';
+    if(mode==='new-proj'){
+      const p=makeProject(name,addr);saveProj(p);proj=p;setActiveId(p.id);
+    }else{
+      proj.name=name;proj.address=addr;saveProj(proj);
+    }
+    closeModal();render();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════════════════
+function renderProject(){
+  return`
+    <div class="sticky top-0 z-30 bg-white border-b border-gray-100 pt-safe shadow-sm">
+      <div class="flex items-center h-14 px-4 gap-3">
+        <button data-open-side class="p-2 -ml-2 text-gray-700 active:text-gray-900">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-gray-900 text-sm leading-tight truncate">${esc(proj.name)}</div>
+          ${proj.address?`<div class="text-xs text-gray-400 truncate">${esc(proj.address)}</div>`:''}
+        </div>
+        <button data-action="rename-proj" class="p-2 text-gray-400 active:text-gray-700">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div style="min-height:calc(100vh - 56px - 64px)">
+      ${proj.rooms.map(room=>`
+        <section>
+          <div class="sticky top-14 z-20 flex items-center px-4 py-3 bg-gray-800 text-white shadow-sm">
+            <span class="text-xs font-bold uppercase tracking-widest text-gray-300 truncate">${esc(room.label)}</span>
+          </div>
+          <div class="bg-white divide-y divide-gray-50">
+            ${ROOM_TYPES[room.type].groups.map(gKey=>`
+              <div class="px-4 py-3 bg-gray-50">
+                <span class="text-sm font-semibold text-gray-600">${esc(GROUPS[gKey]?.label||'')}</span>
+                <span class="text-xs text-gray-400 ml-2">${(GROUPS[gKey]?.items||[]).length} items</span>
+              </div>
+            `).join('')}
+          </div>
+        </section>
+      `).join('')}
+    </div>
+    <div class="sticky bottom-0 z-30 bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+      <div class="flex items-center justify-between px-5 py-4 safe-bot">
+        <div class="text-2xl font-bold text-gray-900 tabular-nums">$0</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWelcome(){
+  const list=loadList();
+  return`
+    <div class="min-h-screen flex flex-col items-center justify-center p-6 text-center pt-safe">
+      <div class="w-20 h-20 rounded-[28px] bg-orange-500 flex items-center justify-center mb-6 shadow-xl">
+        <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75V21a.75.75 0 01-.75.75H3.75A.75.75 0 013 21V9.75z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 21V12h6v9"/>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-gray-900 mb-2">Spark Estimator</h1>
+      <p class="text-gray-500 mb-10 text-sm max-w-xs leading-relaxed">Fast repair cost estimates during property walkthroughs.</p>
+      <button data-open-modal class="w-full max-w-xs py-4 bg-orange-500 text-white rounded-2xl font-semibold text-base shadow-lg active:opacity-75 active:scale-95 transition-transform">
+        + Start New Project
+      </button>
+      ${list.length>0?`<button data-open-side class="mt-5 text-orange-600 font-medium text-sm py-2">
+        View ${list.length} existing project${list.length!==1?'s':''} →
+      </button>`:''}
+    </div>
+  `;
+}
+
+function render(){
+  const app=document.getElementById('app');
+  if(!proj) app.innerHTML=renderWelcome();
+  else       app.innerHTML=renderProject();
+  refreshPanelList();
+}
+
+function refreshPanelList(){
+  const list=loadList();
+  document.getElementById('panel-list').innerHTML=list.length===0
+    ?'<p class="text-sm text-gray-400 text-center py-8 px-4">No projects yet</p>'
+    :list.map(p=>`
+      <button class="w-full text-left px-4 py-3.5 active:bg-gray-50 ${proj&&p.id===proj.id?'bg-orange-50 border-l-2 border-orange-400':''}"
+        data-switch="${p.id}">
+        <div class="font-medium text-sm text-gray-800 truncate">${esc(p.name)}</div>
+        ${p.address?`<div class="text-xs text-gray-400 truncate mt-0.5">${esc(p.address)}</div>`:''}
+        <div class="text-xs text-gray-300 mt-0.5">${new Date(p.updatedAt).toLocaleDateString()}</div>
+      </button>
+    `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PANEL HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function openPanel(){refreshPanelList();document.getElementById('panel-overlay').classList.remove('hidden');document.getElementById('side-panel').style.transform='translateX(0)'}
+function closePanel(){document.getElementById('panel-overlay').classList.add('hidden');document.getElementById('side-panel').style.transform=''}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════════════════════
+function setupListeners(){
+  document.getElementById('close-panel').addEventListener('click',closePanel);
+  document.getElementById('panel-overlay').addEventListener('click',closePanel);
+  document.getElementById('panel-new').addEventListener('click',()=>{closePanel();openModal('new-proj')});
+
+  document.body.addEventListener('click',e=>{
+    if(e.target.matches('#modal-bg')||e.target.closest('[data-modal-cancel]')){closeModal();return}
+    if(e.target.closest('[data-modal-confirm]')){confirmModal();return}
+    if(e.target.closest('[data-open-side]')){openPanel();return}
+    if(e.target.closest('[data-open-modal]')){openModal('new-proj');return}
+    const sw=e.target.closest('[data-switch]');
+    if(sw){const p=loadProj(sw.dataset.switch);if(p){proj=p;setActiveId(p.id);closePanel();render()}return}
+    if(e.target.closest('[data-action="rename-proj"]')){openModal('rename-proj');return}
+  });
+
+  document.body.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&modalSt&&!document.getElementById('modal').classList.contains('hidden')){
+      e.preventDefault();confirmModal();
+    }
+    if(e.key==='Escape'&&modalSt)closeModal();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+function init(){
+  const id=getActiveId();
+  if(id)proj=loadProj(id);
+  if(!proj){
+    const list=loadList();
+    if(list.length>0){proj=loadProj(list[0].id);if(proj)setActiveId(proj.id)}
+  }
+  setupListeners();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
