@@ -11,6 +11,8 @@
   <meta name="theme-color" content="#ea580c" />
   <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));</script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
     *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
     html{height:100%}
@@ -506,6 +508,139 @@ function handleToggleCollapse(roomId,gKey){
     collapsed.add(key);
     bodyEl?.classList.add('hidden');
     chevEl?.classList.add('-rotate-90');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXCEL WORKBOOK BUILDER — Phase 7
+// ═══════════════════════════════════════════════════════════════════════════
+function buildWorkbook(p){
+  const rows=[], styleMap={};
+  let ri=0;
+  const R  =(...cols)=>{const i=ri++;rows.push(cols);return i;};
+  const S  =(r,c,s)=>{(styleMap[r]??(styleMap[r]={}))[c]=s;};
+  const enc=(r,c)=>XLSX.utils.encode_cell({r,c});
+  const ORANGE='EA580C', WHITE='FFFFFF', DARK='1F2937',
+        LORANGE='FFF7ED', GREEN='16A34A';
+  const r0=R('Spark Homes — Repair Estimate','','','','','','');
+  S(r0,0,{font:{bold:true,sz:16,color:{rgb:ORANGE}}});
+  const r1=R(`Project: ${p.name}`,'','','','','','');
+  S(r1,0,{font:{bold:true,sz:11}});
+  if(p.address){ const ra=R(`Address: ${p.address}`,'','','','','',''); S(ra,0,{font:{sz:10,color:{rgb:'555555'}}}); }
+  const dateStr=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const rd=R(`Date: ${dateStr}`,'','','','','',''); S(rd,0,{font:{sz:10,color:{rgb:'555555'}}});
+  R();
+  const hdrStyle=(col)=>({
+    font:{bold:true,sz:10,color:{rgb:WHITE}},
+    fill:{fgColor:{rgb:ORANGE},patternType:'solid'},
+    alignment:{horizontal:col>=3?'right':'left',vertical:'center'},
+  });
+  const hRow=R('Room','Group','Item','Qty','Unit','Unit Cost','Line Total');
+  for(let c=0;c<7;c++) S(hRow,c,hdrStyle(c));
+  let grandTotal=0, lastRoom='';
+  for(const room of p.rooms){
+    let roomTotal=0, roomHasContent=false;
+    for(const[gKey,g]of Object.entries(room.groups)){
+      const gDef=GROUPS[gKey]; if(!gDef)continue;
+      if(g.noAction){
+        const r=R(room.label,gDef.label,'✓ No Action Needed','','','','');
+        S(r,0,room.label!==lastRoom?{font:{bold:true}}:{});
+        S(r,2,{font:{italic:true,color:{rgb:GREEN}}});
+        lastRoom=room.label; roomHasContent=true; continue;
+      }
+      for(const[itemId,item]of Object.entries(g.items)){
+        if(!item.checked||!item.qty||g.removedItems.includes(itemId))continue;
+        const def=CATALOG[itemId];
+        const cost=effectiveCost(itemId,p,item);
+        const lt=cost*item.qty;
+        const r=R(room.label,gDef.label,def.name,item.qty,def.unit,cost,lt);
+        if(room.label!==lastRoom) S(r,0,{font:{bold:true}});
+        S(r,3,{alignment:{horizontal:'right'}});
+        S(r,5,{numFmt:'$#,##0.00',alignment:{horizontal:'right'},font:{sz:10}});
+        S(r,6,{numFmt:'$#,##0.00',alignment:{horizontal:'right'},font:{bold:true,sz:10}});
+        lastRoom=room.label; roomTotal+=lt; roomHasContent=true;
+      }
+      for(const ci of g.customItems){
+        if(!ci.checked||!ci.qty)continue;
+        const lt=(ci.cost||0)*ci.qty;
+        const r=R(room.label,gDef.label,`${ci.name} (custom)`,ci.qty,ci.unit||'ea.',ci.cost||0,lt);
+        S(r,5,{numFmt:'$#,##0.00',alignment:{horizontal:'right'}});
+        S(r,6,{numFmt:'$#,##0.00',alignment:{horizontal:'right'},font:{bold:true}});
+        lastRoom=room.label; roomTotal+=lt; roomHasContent=true;
+      }
+    }
+    if(roomHasContent&&roomTotal>0){
+      const sr=R('','','','','',`${room.label} Subtotal`,roomTotal);
+      S(sr,5,{font:{bold:true},alignment:{horizontal:'right'},fill:{fgColor:{rgb:LORANGE},patternType:'solid'}});
+      S(sr,6,{numFmt:'$#,##0.00',font:{bold:true},alignment:{horizontal:'right'},fill:{fgColor:{rgb:LORANGE},patternType:'solid'}});
+    }
+    if(roomHasContent) R();
+    grandTotal+=roomTotal;
+  }
+  const snPhotos=p.photos.filter(ph=>ph.serialNumber);
+  if(snPhotos.length){
+    R();
+    const sh=R('Serial Numbers Captured','','','','','','');
+    S(sh,0,{font:{bold:true,sz:11,color:{rgb:ORANGE}}});
+    for(const ph of snPhotos){
+      const sr=R(ph.name,ph.serialNumber,'','','','','');
+      S(sr,0,{font:{sz:10,color:{rgb:'555555'}}});
+      S(sr,1,{font:{bold:true,sz:10,name:'Courier New'}});
+    }
+    R();
+  }
+  R();
+  const gr=R('','','','','','GRAND TOTAL',grandTotal);
+  S(gr,5,{font:{bold:true,sz:12,color:{rgb:WHITE}},fill:{fgColor:{rgb:DARK},patternType:'solid'},alignment:{horizontal:'right',vertical:'center'}});
+  S(gr,6,{numFmt:'$#,##0.00',font:{bold:true,sz:12,color:{rgb:'F97316'}},fill:{fgColor:{rgb:DARK},patternType:'solid'},alignment:{horizontal:'right',vertical:'center'}});
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  for(const[rStr,cols]of Object.entries(styleMap)){
+    for(const[cStr,s]of Object.entries(cols)){
+      const a=enc(+rStr,+cStr);
+      if(ws[a])ws[a].s=s;
+    }
+  }
+  ws['!cols']=[{wch:22},{wch:22},{wch:40},{wch:8},{wch:18},{wch:14},{wch:14}];
+  if(!ws['!merges'])ws['!merges']=[];
+  ws['!merges'].push({s:{r:0,c:0},e:{r:0,c:6}});
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Repair Estimate');
+  return wb;
+}
+
+async function exportProject(){
+  const btn=document.querySelector('[data-action="export"]');
+  if(btn){btn.disabled=true;btn.textContent='Building…';}
+  try{
+    const wb=buildWorkbook(proj);
+    const xlsxData=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const zip=new JSZip();
+    zip.file('estimate.xlsx',xlsxData);
+    if(proj.photos.length){
+      const folder=zip.folder('photos');
+      proj.photos.forEach((ph,i)=>{
+        const n=String(i+1).padStart(3,'0');
+        const snTag=ph.serialNumber?`-SN-${ph.serialNumber.replace(/[^\w-]/g,'_')}`:'';
+        const b64=(ph.dataUrl||'').split(',')[1]||'';
+        folder.file(`photo-${n}${snTag}.jpg`,b64,{base64:true});
+      });
+    }
+    const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+    const dateStr=new Date().toISOString().slice(0,10);
+    const safeName=(proj.name||'estimate').replace(/[^\w\s-]/g,'').trim()
+      .replace(/\s+/g,'-').toLowerCase().slice(0,40)||'estimate';
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=`${safeName}-${dateStr}.zip`;
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);document.body.removeChild(a);},1000);
+    const photoLine=proj.photos.length?` + ${proj.photos.length} photo${proj.photos.length!==1?'s':''}`:' (no photos)';
+    showToast(`Exported estimate.xlsx${photoLine}`);
+  }catch(err){
+    console.error('Export error:',err);
+    showToast('Export failed — '+err.message,5000);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Export ZIP';}
   }
 }
 
@@ -1053,6 +1188,10 @@ function renderProject(){
           </div>
           <div id="footer-total" class="text-2xl font-bold text-gray-900 tabular-nums">${fmt(costTotal)}</div>
         </div>
+        <button data-action="export"
+          class="px-5 py-3 bg-orange-500 text-white font-semibold rounded-xl text-sm active:opacity-75 select-none">
+          Export ZIP
+        </button>
       </div>
     </div>
   `;
@@ -1133,6 +1272,7 @@ function setupListeners(){
 
     if(e.target.closest('[data-action="rename-proj"]')){openModal('rename-proj');return}
     if(e.target.closest('[data-action="open-settings"]')){openModal('settings');return}
+    if(e.target.closest('[data-action="export"]')){exportProject();return}
 
     const rp=e.target.closest('[data-remove-photo]');
     if(rp){removePhoto(rp.dataset.removePhoto);return}
