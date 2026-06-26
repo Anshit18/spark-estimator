@@ -476,6 +476,83 @@ function handleToggleCollapse(roomId,gKey){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// PRICE OVERRIDES — Phase 4
+// ═══════════════════════════════════════════════════════════════════════════
+
+function parseGlobalPriceCsv(text){
+  const prices={};
+  text.trim().split('\n').slice(1).forEach(line=>{
+    const cols=line.split(',');
+    const id=(cols[0]||'').trim().replace(/^"|"$/g,'');
+    const cost=parseFloat((cols[2]||'').trim().replace(/^"|"$/g,''));
+    if(id&&!isNaN(cost)&&CATALOG[id])prices[id]=cost;
+  });
+  return prices;
+}
+
+function buildPriceCsv(){
+  const gp=getGlobalPrices();
+  const rows=['id,name,cost,unit'];
+  for(const[id,def]of Object.entries(CATALOG)){
+    const cost=gp[id]??def.cost;
+    rows.push(`${id},"${def.name.replace(/"/g,'""')}",${cost},"${def.unit}"`);
+  }
+  return rows.join('\n');
+}
+
+function priceBtn(roomId,gKey,itemId,cost,unit,hasOverride){
+  const btn=document.createElement('button');
+  btn.className='text-xs text-left active:opacity-60 leading-snug py-0.5';
+  btn.dataset.editprice='';
+  btn.dataset.room=roomId;
+  btn.dataset.gkey=gKey;
+  btn.dataset.item=itemId;
+  btn.innerHTML=hasOverride
+    ?`<span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span class="text-gray-300">/ ${esc(unit)}</span>`
+    :`<span class="text-gray-400">${fmtCost(cost)}</span> <span class="text-gray-300">/ ${esc(unit)}</span>`;
+  return btn;
+}
+
+function startPriceEdit(roomId,gKey,itemId,triggerEl){
+  const room=proj.rooms.find(r=>r.id===roomId);
+  const item=room?.groups[gKey]?.items[itemId];
+  const def=CATALOG[itemId];
+  if(!item||!def)return;
+  const current=effectiveCost(itemId,proj,item);
+  const inp=document.createElement('input');
+  inp.type='number';inp.min='0';inp.step='0.01';
+  inp.value=current;
+  inp.className='text-xs text-orange-600 bg-orange-50 border border-orange-300 rounded-lg px-2 py-1 w-24 focus:outline-none focus:border-orange-500';
+  triggerEl.replaceWith(inp);
+  inp.focus();inp.select();
+  const save=()=>{
+    const v=parseFloat(inp.value);
+    const base=effectiveCost(itemId,proj,{...item,costOverride:null});
+    if(inp.value===''||isNaN(v)||v<0){item.costOverride=null;}
+    else{item.costOverride=(Math.abs(v-base)<0.001)?null:v;}
+    saveProj(proj);
+    const newCost=effectiveCost(itemId,proj,item);
+    const newBtn=priceBtn(roomId,gKey,itemId,newCost,def.unit,item.costOverride!=null);
+    inp.replaceWith(newBtn);
+    patchLineTotal(roomId,gKey,itemId);
+    patchGroupSub(roomId,gKey);
+    patchRoomSub(roomId);
+    patchFooter();
+    if(item.costOverride!=null)showToast(`Price set to ${fmtCost(item.costOverride)} for this room`);
+    else if(inp.value!=='')showToast('Price reset to standard');
+  };
+  inp.addEventListener('blur',save,{once:true});
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();inp.blur();}
+    if(e.key==='Escape'){
+      inp.removeEventListener('blur',save);
+      const restoredBtn=priceBtn(roomId,gKey,itemId,current,def.unit,item.costOverride!=null);
+      inp.replaceWith(restoredBtn);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // MODAL SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════
 const INPUT_CLS='w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-400 focus:bg-white';
@@ -534,6 +611,37 @@ function renderModalContent(st){
       </div></div>`;
   }
 
+  if(st.mode==='settings'){
+    const gp=getGlobalPrices();
+    const customCount=Object.keys(gp).length;
+    const statusCls=customCount>0?'bg-orange-50 text-orange-700 border border-orange-100':'bg-gray-50 text-gray-500';
+    const statusMsg=customCount>0
+      ?`Custom prices active — ${customCount} item${customCount!==1?'s':''} overridden`
+      :'Using default prices from Pricing List.csv';
+    return`<div class="p-6">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="font-bold text-gray-900 text-lg">Settings</h3>
+        <button data-modal-cancel class="text-gray-400 p-2 -mr-2 text-xl leading-none active:text-gray-700">✕</button>
+      </div>
+      <h4 class="text-sm font-semibold text-gray-700 mb-1">Global Price Schedule</h4>
+      <p class="text-xs text-gray-400 mb-3 leading-relaxed">Upload a CSV to update standard prices across <em>all</em> projects. Use the same format as Pricing List.csv — columns: id, name, cost, unit.</p>
+      <div class="${statusCls} rounded-xl px-4 py-2.5 text-sm mb-4">${statusMsg}</div>
+      <div class="space-y-2">
+        <label class="block cursor-pointer">
+          <span class="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-orange-500 text-white font-semibold text-sm active:opacity-75">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Upload New Prices (CSV)
+          </span>
+          <input type="file" accept=".csv,.CSV" id="price-csv-input" class="hidden"/>
+        </label>
+        <button id="dl-prices-btn" class="w-full py-3 rounded-xl text-gray-600 text-sm font-medium border border-gray-200 active:bg-gray-50 flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download Current Price Template
+        </button>
+        ${customCount>0?`<button id="reset-prices-btn" class="w-full py-3 rounded-xl text-red-400 text-sm font-semibold border border-red-100 active:bg-red-50">Reset to Default Prices</button>`:''}
+      </div>
+    </div>`;
+  }
   return'';
 }
 
@@ -591,7 +699,9 @@ function renderItem(room,gKey,itemId){
       data-checkbox data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"/>
     <div class="flex-1 min-w-0">
       <div class="text-sm font-medium text-gray-800 leading-snug">${esc(def.name)}</div>
-      <div class="text-xs text-gray-400 leading-snug py-0.5">${fmtCost(cost)} / ${esc(def.unit)}</div>
+      ${item.costOverride!=null
+        ?`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span class="text-gray-300">/ ${esc(def.unit)}</span></button>`
+        :`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span class="text-gray-400">${fmtCost(cost)}</span> <span class="text-gray-300">/ ${esc(def.unit)}</span></button>`}
     </div>
     <div class="flex items-center gap-1.5 flex-shrink-0">
       <input id="qty-${k}" type="number" min="0" step="0.5"
@@ -710,6 +820,12 @@ function renderProject(){
             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
           </svg>
         </button>
+        <button data-action="open-settings" class="p-2 -mr-2 relative text-gray-400 active:text-gray-700" title="Settings / pricing">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          ${Object.keys(getGlobalPrices()).length>0?'<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full"></span>':''}
+        </button>
       </div>
     </div>
     <div style="min-height:calc(100vh - 56px - 72px)">
@@ -798,6 +914,21 @@ function setupListeners(){
     if(sw){const p=loadProj(sw.dataset.switch);if(p){proj=p;setActiveId(p.id);closePanel();render()}return}
 
     if(e.target.closest('[data-action="rename-proj"]')){openModal('rename-proj');return}
+    if(e.target.closest('[data-action="open-settings"]')){openModal('settings');return}
+
+    const ep=e.target.closest('[data-editprice]');
+    if(ep){startPriceEdit(ep.dataset.room,ep.dataset.gkey,ep.dataset.item,ep);return}
+
+    if(e.target.id==='reset-prices-btn'){
+      setGlobalPrices({});closeModal();
+      showToast('Prices reset to defaults');render();return;
+    }
+    if(e.target.id==='dl-prices-btn'){
+      const csv=buildPriceCsv();
+      const a=document.createElement('a');
+      a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+      a.download='spark-prices.csv';a.click();return;
+    }
 
     const addRoom_=e.target.closest('[data-add-room]');
     if(addRoom_){addRoom(addRoom_.dataset.addRoom);return}
@@ -812,6 +943,19 @@ function setupListeners(){
   document.body.addEventListener('change',e=>{
     const cb=e.target;
     if(cb.dataset.checkbox!==undefined)handleCheck(cb.dataset.room,cb.dataset.gkey,cb.dataset.item,cb.checked);
+    if(cb.id==='price-csv-input'&&cb.files?.[0]){
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        const prices=parseGlobalPriceCsv(ev.target.result);
+        const n=Object.keys(prices).length;
+        if(!n){showToast('No matching IDs found in CSV');return;}
+        setGlobalPrices(prices);
+        closeModal();
+        showToast(`Updated ${n} item price${n!==1?'s':''} globally`);
+        render();
+      };
+      reader.readAsText(cb.files[0]);
+    }
   });
 
   document.body.addEventListener('input',e=>{
