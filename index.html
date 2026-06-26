@@ -307,6 +307,20 @@ function computeRoomSub(room){
   return Object.keys(room.groups).reduce((s,gKey)=>s+computeGroupSub(room,gKey),0);
 }
 
+// ── Phase 5: progress tracking ────────────────────────────────────────────
+
+// A group is "reviewed" if noAction is set OR at least one item is checked.
+function progressStats(p){
+  let total=0,done=0;
+  for(const room of p.rooms)
+    for(const[,g]of Object.entries(room.groups)){
+      total++;
+      const anyItem=Object.entries(g.items).some(([id,i])=>i.checked&&!g.removedItems.includes(id));
+      if(g.noAction||anyItem||g.customItems.some(c=>c.checked))done++;
+    }
+  return{pct:total?Math.round(done/total*100):0,done,total};
+}
+
 // ── Phase 3: room management ──────────────────────────────────────────────
 
 function nextRoomNumber(type){
@@ -403,6 +417,24 @@ function patchFooter(){
   if(el)el.textContent=fmt(computeTotal(proj));
 }
 
+function patchProgress(){
+  const{pct,done,total}=progressStats(proj);
+  const bar=document.getElementById('progress-bar');
+  const txt=document.getElementById('progress-txt');
+  if(bar){
+    bar.style.width=pct+'%';
+    bar.classList.toggle('bg-green-500',pct===100);
+    bar.classList.toggle('bg-orange-500',pct<100);
+  }
+  if(txt){
+    txt.textContent=pct===100
+      ?`All ${total} groups reviewed`
+      :`${pct}% · ${done} of ${total} groups reviewed`;
+    txt.classList.toggle('text-green-600',pct===100);
+    txt.classList.toggle('text-gray-400',pct<100);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ITEM HANDLERS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -424,6 +456,7 @@ function handleCheck(roomId,gKey,itemId,checked){
   patchGroupSub(roomId,gKey);
   patchRoomSub(roomId);
   patchFooter();
+  patchProgress();
 }
 
 function handleQtyInput(roomId,gKey,itemId,value){
@@ -458,6 +491,7 @@ function handleNoAction(roomId,gKey){
   patchGroupSub(roomId,gKey);
   patchRoomSub(roomId);
   patchFooter();
+  patchProgress();
 }
 
 function handleToggleCollapse(roomId,gKey){
@@ -803,6 +837,7 @@ function renderAddRoomSection(){
 
 function renderProject(){
   const costTotal=computeTotal(proj);
+  const{pct,done,total:grpTotal}=progressStats(proj);
   return`
     <div class="sticky top-0 z-30 bg-white border-b border-gray-100 pt-safe shadow-sm">
       <div class="flex items-center h-14 px-4 gap-3">
@@ -833,8 +868,19 @@ function renderProject(){
       ${renderAddRoomSection()}
     </div>
     <div class="sticky bottom-0 z-30 bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-      <div class="flex items-center justify-between px-5 py-4 safe-bot">
-        <div id="footer-total" class="text-2xl font-bold text-gray-900 tabular-nums">${fmt(costTotal)}</div>
+      <div class="h-1.5 bg-gray-100 overflow-hidden">
+        <div id="progress-bar"
+          class="h-full transition-all duration-500 ease-out ${pct===100?'bg-green-500':'bg-orange-500'}"
+          style="width:${pct}%"></div>
+      </div>
+      <div class="flex items-center justify-between px-5 pt-3 pb-4 safe-bot">
+        <div>
+          <div id="progress-txt"
+            class="text-xs font-medium mb-0.5 ${pct===100?'text-green-600':'text-gray-400'}">
+            ${pct===100?`All ${grpTotal} groups reviewed`:`${pct}% · ${done} of ${grpTotal} groups reviewed`}
+          </div>
+          <div id="footer-total" class="text-2xl font-bold text-gray-900 tabular-nums">${fmt(costTotal)}</div>
+        </div>
       </div>
     </div>
   `;
