@@ -38,7 +38,13 @@
     </div>
   </div>
   <div id="panel-list" class="flex-1 overflow-y-auto divide-y divide-gray-50"></div>
-  <div class="p-4 border-t border-gray-100 flex-shrink-0 safe-bot">
+  <div class="p-4 border-t border-gray-100 flex-shrink-0 safe-bot space-y-2">
+    <button id="compare-btn" class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm active:bg-slate-200 flex items-center justify-center gap-2">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+      Compare Projects
+    </button>
     <button id="panel-new" class="w-full py-3 rounded-xl bg-orange-500 text-white font-semibold text-sm active:opacity-75">+ New Project</button>
   </div>
 </div>
@@ -309,6 +315,41 @@ function computeRoomSub(room){
   return Object.keys(room.groups).reduce((s,gKey)=>s+computeGroupSub(room,gKey),0);
 }
 
+// ── Phase 8: triage and comparison helpers ────────────────────────────────
+
+function getTriageItems(p){
+  const all=[];
+  for(const room of p.rooms){
+    for(const[gKey,g]of Object.entries(room.groups)){
+      if(g.noAction)continue;
+      for(const[id,item]of Object.entries(g.items)){
+        if(!item.checked||!item.qty||g.removedItems.includes(id))continue;
+        const cost=effectiveCost(id,p,item);
+        const lt=cost*item.qty;
+        if(lt>0)all.push({room:room.label,group:GROUPS[gKey]?.label||'',name:CATALOG[id].name,qty:item.qty,unit:CATALOG[id].unit,lt});
+      }
+      for(const ci of g.customItems){
+        if(!ci.checked||!ci.qty)continue;
+        const lt=(ci.cost||0)*ci.qty;
+        if(lt>0)all.push({room:room.label,group:GROUPS[gKey]?.label||'',name:ci.name+' ✎',qty:ci.qty,unit:ci.unit||'ea.',lt});
+      }
+    }
+  }
+  all.sort((a,b)=>b.lt-a.lt);
+  const total=all.reduce((s,i)=>s+i.lt,0);
+  let run=0,cutoff=all.length-1;
+  for(let i=0;i<all.length;i++){run+=all[i].lt;if(run>=total*0.80){cutoff=i;break;}}
+  return{items:all,cutoff,total};
+}
+
+function getSectionCosts(p){
+  const out={};
+  for(const[type,rt]of Object.entries(ROOM_TYPES))out[type]={label:rt.label,total:0};
+  for(const room of p.rooms)
+    if(out[room.type])out[room.type].total+=computeRoomSub(room);
+  return out;
+}
+
 // ── Phase 5: progress tracking ────────────────────────────────────────────
 
 // A group is "reviewed" if noAction is set OR at least one item is checked.
@@ -365,6 +406,8 @@ function renameRoom(roomId,label){
 let proj=null;
 const collapsed=new Set();
 let modalSt=null;
+let viewMode='project';
+let cmpState={a:null,b:null};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FORMATTERS
@@ -1139,6 +1182,236 @@ function renderAddRoomSection(){
   </div>`;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 8 — TRIAGE VIEW
+// ═══════════════════════════════════════════════════════════════════════════
+function renderTriageView(){
+  const{items,cutoff,total}=getTriageItems(proj);
+  const paretoItems=items.slice(0,cutoff+1);
+  const restItems=items.slice(cutoff+1);
+  const restTotal=restItems.reduce((s,i)=>s+i.lt,0);
+  const maxCost=items[0]?.lt||1;
+  const paretoPct=total>0?Math.round(paretoItems.reduce((s,i)=>s+i.lt,0)/total*100):0;
+  const backBtn=`<button data-action="back-to-project" class="p-2 -ml-2 text-gray-700 active:text-gray-900">
+    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+    </svg></button>`;
+  const header=`<div class="sticky top-0 z-30 bg-white border-b border-gray-100 pt-safe shadow-sm">
+    <div class="flex items-center h-14 px-4 gap-3">
+      ${backBtn}
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-gray-900 text-sm">Cost Triage</div>
+        <div class="text-xs text-gray-400 truncate">${esc(proj.name)}</div>
+      </div>
+      <div class="text-right flex-shrink-0">
+        <div class="text-xs text-gray-400">total</div>
+        <div class="text-sm font-bold text-gray-900 tabular-nums">${fmt(total)}</div>
+      </div>
+    </div>
+  </div>`;
+  if(!items.length) return header+`<div class="flex flex-col items-center justify-center py-20 px-8 text-center">
+    <div class="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+      <svg class="w-7 h-7 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    </div>
+    <p class="text-gray-500 font-medium text-sm mb-1">No items checked yet</p>
+    <p class="text-gray-400 text-xs leading-relaxed">Check items during the walkthrough to see what's driving cost here.</p>
+  </div>`;
+  const itemRows=paretoItems.map((item,i)=>{
+    const barPct=Math.round(item.lt/maxCost*100);
+    const sharePct=Math.round(item.lt/total*100);
+    return`<div class="px-4 py-3.5 border-b border-gray-50">
+      <div class="flex items-start gap-3">
+        <span class="text-xl font-bold text-gray-200 w-7 text-right flex-shrink-0 leading-none mt-0.5 tabular-nums">${i+1}</span>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="text-sm font-semibold text-gray-900 leading-snug">${esc(item.name)}</div>
+              <div class="text-xs text-gray-400 mt-0.5">${esc(item.room)} · ${esc(item.group)}</div>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <div class="text-sm font-bold text-orange-600 tabular-nums">${fmt(item.lt)}</div>
+              <div class="text-xs text-gray-400">${sharePct}%</div>
+            </div>
+          </div>
+          <div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full bg-orange-500 rounded-full" style="width:${barPct}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  const restSection=restItems.length?`<div class="bg-gray-50 border-t border-gray-200 px-4 py-4">
+    <div class="flex justify-between items-center mb-3">
+      <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Remaining items</span>
+      <span class="text-sm font-semibold text-gray-600 tabular-nums">${fmt(restTotal)} · ${Math.round(restTotal/total*100)}%</span>
+    </div>
+    <div class="space-y-1.5">
+      ${restItems.slice(0,6).map(item=>`<div class="flex justify-between items-center text-xs text-gray-500">
+        <span class="truncate mr-2 flex-1">${esc(item.name)}<span class="text-gray-300 ml-1">· ${esc(item.room)}</span></span>
+        <span class="flex-shrink-0 tabular-nums font-medium">${fmt(item.lt)}</span>
+      </div>`).join('')}
+      ${restItems.length>6?`<div class="text-xs text-gray-400 pt-1">…and ${restItems.length-6} more</div>`:''}
+    </div>
+  </div>`:'';
+  return`${header}
+  <div class="px-4 py-3 bg-orange-50 border-b border-orange-100 flex items-center justify-between">
+    <div>
+      <p class="text-sm font-semibold text-orange-900">${paretoItems.length} item${paretoItems.length!==1?'s':''} = ${paretoPct}% of total cost</p>
+      <p class="text-xs text-orange-600 mt-0.5">Pareto principle — fix these to move the number most.</p>
+    </div>
+    <div class="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center flex-shrink-0">
+      <span class="text-white font-bold text-sm">${paretoPct}%</span>
+    </div>
+  </div>
+  <div class="bg-white">${itemRows}</div>
+  ${restSection}
+  <div class="h-8"></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHASE 8 — COMPARE VIEW
+// ═══════════════════════════════════════════════════════════════════════════
+function renderComparePicker(slot){
+  const list=loadList();
+  const takenId=slot==='b'?cmpState.a:cmpState.b;
+  return`<div class="sticky top-0 z-30 bg-white border-b border-gray-100 pt-safe shadow-sm">
+    <div class="flex items-center h-14 px-4 gap-3">
+      <button data-action="compare-close" class="p-2 -ml-2 text-gray-700 active:text-gray-900">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <div class="flex-1">
+        <div class="font-semibold text-gray-900 text-sm">Compare Projects</div>
+        <div class="text-xs text-gray-400">Pick Project ${slot.toUpperCase()}</div>
+      </div>
+    </div>
+  </div>
+  <div class="px-4 pt-4 pb-2">
+    <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">
+      ${slot==='a'?'Select the first project':'Now select the second project to compare'}
+    </p>
+  </div>
+  <div class="divide-y divide-gray-50 bg-white">
+    ${list.map(p=>{
+      const isTaken=p.id===takenId;
+      const full=loadProj(p.id);
+      const tot=full?computeTotal(full):0;
+      const pct=full?progressStats(full).pct:0;
+      return`<button class="w-full text-left px-4 py-4 active:bg-gray-50 flex items-center justify-between gap-3 ${isTaken?'opacity-30 pointer-events-none':''}"
+        data-cmp-pick="${slot}|${p.id}">
+        <div class="min-w-0">
+          <div class="font-medium text-sm text-gray-900 truncate">${esc(p.name)}</div>
+          ${p.address?`<div class="text-xs text-gray-400 truncate">${esc(p.address)}</div>`:''}
+        </div>
+        <div class="text-right flex-shrink-0">
+          <div class="text-sm font-bold text-gray-900 tabular-nums">${tot?fmt(tot):'$0'}</div>
+          <div class="text-xs text-gray-400">${pct}% done</div>
+        </div>
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+
+function renderComparisonResult(pA,pB){
+  const totA=computeTotal(pA), totB=computeTotal(pB);
+  const {pct:pctA}=progressStats(pA), {pct:pctB}=progressStats(pB);
+  const diff=Math.abs(totA-totB);
+  const cheaper=totA<=totB?'a':'b';
+  const diffPct=Math.max(totA,totB)>0?Math.round(diff/Math.max(totA,totB)*100):0;
+  const secA=getSectionCosts(pA), secB=getSectionCosts(pB);
+  const sectionRows=Object.entries(ROOM_TYPES).map(([type,rt])=>{
+    const sa=secA[type]?.total||0, sb=secB[type]?.total||0;
+    if(!sa&&!sb)return'';
+    const mx=Math.max(sa,sb,1);
+    const wA=Math.round(sa/mx*100), wB=Math.round(sb/mx*100);
+    const diffS=Math.abs(sa-sb);
+    const tag=diffS>0?`<span class="text-[10px] ${sa<sb?'text-green-600':'text-red-400'} font-medium ml-1">${sa<sb?'↓':'↑'}${fmt(diffS)}</span>`:'';
+    return`<div class="mb-4">
+      <div class="flex items-center justify-between mb-1.5">
+        <span class="text-xs font-semibold text-gray-600">${rt.label}${tag}</span>
+      </div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="w-3 h-3 rounded-sm bg-orange-500 flex-shrink-0"></span>
+        <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-orange-500 rounded-full transition-all" style="width:${wA}%"></div>
+        </div>
+        <span class="text-xs text-gray-700 w-14 text-right tabular-nums font-medium">${fmt(sa)}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-sm bg-blue-500 flex-shrink-0"></span>
+        <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-blue-500 rounded-full transition-all" style="width:${wB}%"></div>
+        </div>
+        <span class="text-xs text-gray-700 w-14 text-right tabular-nums font-medium">${fmt(sb)}</span>
+      </div>
+    </div>`;
+  }).join('');
+  return`<div class="sticky top-0 z-30 bg-white border-b border-gray-100 pt-safe shadow-sm">
+    <div class="flex items-center h-14 px-4 gap-3">
+      <button data-action="compare-close" class="p-2 -ml-2 text-gray-700 active:text-gray-900">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      <span class="flex-1 font-semibold text-gray-900 text-sm">Project Comparison</span>
+      <button data-action="compare-reset" class="text-xs text-orange-500 font-semibold px-3 py-2 active:opacity-70">Reselect</button>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 gap-3 px-4 pt-4 pb-1">
+    <div class="bg-orange-50 border border-orange-100 rounded-2xl p-3.5">
+      <div class="flex items-center gap-1.5 mb-1">
+        <span class="w-2.5 h-2.5 rounded-sm bg-orange-500 flex-shrink-0"></span>
+        <span class="text-[10px] font-bold text-orange-600 uppercase tracking-wider">Project A</span>
+      </div>
+      <div class="font-semibold text-gray-900 text-sm leading-snug truncate">${esc(pA.name)}</div>
+      ${pA.address?`<div class="text-xs text-gray-500 truncate mt-0.5">${esc(pA.address)}</div>`:''}
+      <div class="text-xl font-bold text-gray-900 mt-2 tabular-nums">${fmt(totA)}</div>
+      <div class="text-xs text-gray-500 mt-0.5">${pctA}% reviewed</div>
+    </div>
+    <div class="bg-blue-50 border border-blue-100 rounded-2xl p-3.5">
+      <div class="flex items-center gap-1.5 mb-1">
+        <span class="w-2.5 h-2.5 rounded-sm bg-blue-500 flex-shrink-0"></span>
+        <span class="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Project B</span>
+      </div>
+      <div class="font-semibold text-gray-900 text-sm leading-snug truncate">${esc(pB.name)}</div>
+      ${pB.address?`<div class="text-xs text-gray-500 truncate mt-0.5">${esc(pB.address)}</div>`:''}
+      <div class="text-xl font-bold text-gray-900 mt-2 tabular-nums">${fmt(totB)}</div>
+      <div class="text-xs text-gray-500 mt-0.5">${pctB}% reviewed</div>
+    </div>
+  </div>
+  ${diff>0?`<div class="mx-4 my-3 px-4 py-2.5 rounded-xl ${cheaper==='a'?'bg-green-50 border border-green-100':'bg-blue-50 border border-blue-100'} flex items-center justify-center gap-2">
+    <span class="text-sm font-semibold ${cheaper==='a'?'text-green-700':'text-blue-700'}">
+      Project ${cheaper.toUpperCase()} is ${fmt(diff)} less expensive (${diffPct}% cheaper)
+    </span>
+  </div>`:'<div class="mx-4 my-3 px-4 py-2.5 rounded-xl bg-gray-50 text-center text-sm text-gray-500 font-medium">Projects have equal estimated cost</div>'}
+  <div class="px-4 pb-6">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Cost by Section</p>
+    <div class="flex items-center gap-4 mb-4">
+      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-orange-500"></span><span class="text-xs text-gray-600">Project A</span></div>
+      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-blue-500"></span><span class="text-xs text-gray-600">Project B</span></div>
+    </div>
+    ${sectionRows}
+  </div>`;
+}
+
+function renderCompareView(){
+  const list=loadList();
+  if(list.length<2) return`<div class="flex flex-col items-center justify-center min-h-screen px-8 text-center">
+    <div class="text-4xl mb-4">⚖</div>
+    <h2 class="font-bold text-gray-900 text-lg mb-2">Need 2 projects to compare</h2>
+    <p class="text-gray-500 text-sm mb-6">You only have ${list.length} project saved. Create another one first.</p>
+    <button data-action="compare-close" class="px-5 py-3 bg-orange-500 text-white font-semibold rounded-xl text-sm active:opacity-75">Back</button>
+  </div>`;
+  if(!cmpState.a) return renderComparePicker('a');
+  if(!cmpState.b) return renderComparePicker('b');
+  const pA=loadProj(cmpState.a), pB=loadProj(cmpState.b);
+  if(!pA||!pB){cmpState={a:null,b:null};return renderCompareView();}
+  return renderComparisonResult(pA,pB);
+}
+
 function renderProject(){
   const costTotal=computeTotal(proj);
   const{pct,done,total:grpTotal}=progressStats(proj);
@@ -1154,6 +1427,11 @@ function renderProject(){
           <div class="font-semibold text-gray-900 text-sm leading-tight truncate">${esc(proj.name)}</div>
           ${proj.address?`<div class="text-xs text-gray-400 truncate">${esc(proj.address)}</div>`:''}
         </div>
+        <button data-action="open-triage" class="p-2 text-gray-400 active:text-gray-700" title="Cost triage">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </button>
         <button data-action="rename-proj" class="p-2 text-gray-400 active:text-gray-700" title="Rename project">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -1221,8 +1499,10 @@ function renderWelcome(){
 
 function render(){
   const app=document.getElementById('app');
-  if(!proj) app.innerHTML=renderWelcome();
-  else       app.innerHTML=renderProject();
+  if(!proj)                      app.innerHTML=renderWelcome();
+  else if(viewMode==='triage')   app.innerHTML=renderTriageView();
+  else if(viewMode==='compare')  app.innerHTML=renderCompareView();
+  else                           app.innerHTML=renderProject();
   refreshPanelList();
 }
 
@@ -1253,6 +1533,9 @@ function setupListeners(){
   document.getElementById('close-panel').addEventListener('click',closePanel);
   document.getElementById('panel-overlay').addEventListener('click',closePanel);
   document.getElementById('panel-new').addEventListener('click',()=>{closePanel();openModal('new-proj')});
+  document.getElementById('compare-btn').addEventListener('click',()=>{
+    closePanel();cmpState={a:null,b:null};viewMode='compare';render();
+  });
 
   document.body.addEventListener('click',e=>{
     if(e.target.matches('#modal-bg')||e.target.closest('[data-modal-cancel]')){closeModal();return}
@@ -1273,6 +1556,16 @@ function setupListeners(){
     if(e.target.closest('[data-action="rename-proj"]')){openModal('rename-proj');return}
     if(e.target.closest('[data-action="open-settings"]')){openModal('settings');return}
     if(e.target.closest('[data-action="export"]')){exportProject();return}
+    if(e.target.closest('[data-action="open-triage"]')){viewMode='triage';render();return}
+    if(e.target.closest('[data-action="back-to-project"]')){viewMode='project';render();return}
+    if(e.target.closest('[data-action="compare-close"]')){viewMode='project';render();return}
+    if(e.target.closest('[data-action="compare-reset"]')){cmpState={a:null,b:null};render();return}
+    const cmpPick=e.target.closest('[data-cmp-pick]');
+    if(cmpPick){
+      const[slot,id]=cmpPick.dataset.cmpPick.split('|');
+      if(slot==='a'){cmpState.a=id;}else{cmpState.b=id;}
+      render();return;
+    }
 
     const rp=e.target.closest('[data-remove-photo]');
     if(rp){removePhoto(rp.dataset.removePhoto);return}
