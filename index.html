@@ -510,6 +510,175 @@ function handleToggleCollapse(roomId,gKey){
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// LOCALSTORAGE USAGE — Phase 6/7
+// ═══════════════════════════════════════════════════════════════════════════
+const LS_WARN_AT  = 4.2*1024*1024;
+const LS_BLOCK_AT = 4.8*1024*1024;
+
+function lsUsedChars(){
+  let t=0;
+  try{ for(const k of Object.keys(localStorage)) t+=(localStorage.getItem(k)||'').length; }
+  catch{}
+  return t;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PHOTO HANDLERS — Phase 6
+// ═══════════════════════════════════════════════════════════════════════════
+
+function compressImage(file,maxPx=1024,quality=0.72){
+  return new Promise(resolve=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>maxPx||h>maxPx){
+          if(w>h){h=Math.round(h*maxPx/w);w=maxPx;}
+          else{w=Math.round(w*maxPx/h);h=maxPx;}
+        }
+        const c=document.createElement('canvas');
+        c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',quality));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function tryDetectBarcode(dataUrl){
+  if(!('BarcodeDetector' in window))return null;
+  try{
+    const detector=new BarcodeDetector();
+    const img=new Image();
+    img.src=dataUrl;
+    await new Promise(r=>{img.onload=r;img.onerror=r});
+    const codes=await detector.detect(img);
+    const sorted=codes.slice().sort((a,b)=>b.rawValue.length-a.rawValue.length);
+    return sorted[0]?.rawValue||null;
+  }catch{return null;}
+}
+
+async function handlePhotoFile(file){
+  if(!file||!file.type.startsWith('image/'))return;
+  const dataUrl=await compressImage(file);
+  const targetProj=proj;
+
+  const used=lsUsedChars();
+  const incoming=dataUrl.length;
+  if(used+incoming>LS_BLOCK_AT){showToast('Storage full — remove photos to free space before adding more.',5000);return;}
+  if(used+incoming>LS_WARN_AT){showToast(`Storage nearly full (${Math.round((used+incoming)/1024/1024*10)/10} MB used). Consider exporting and clearing photos.`,4000);}
+
+  const photo={id:uid(),dataUrl,name:`Photo ${targetProj.photos.length+1}`,timestamp:Date.now(),serialNumber:null,scanning:true};
+  targetProj.photos.push(photo);
+  try{saveProj(targetProj);}
+  catch(e){
+    if(e.name==='QuotaExceededError'||e.message?.includes('quota')){
+      targetProj.photos.pop();showToast('Storage full — photo not saved.',5000);return;
+    }
+    throw e;
+  }
+  if(proj===targetProj)patchPhotosSection();
+
+  const sn=await tryDetectBarcode(dataUrl);
+  const p=targetProj.photos.find(x=>x.id===photo.id);
+  if(p){
+    p.serialNumber=sn;p.scanning=false;saveProj(targetProj);
+    if(proj===targetProj)patchPhotosSection();
+  }
+  if(sn)showToast(`Serial detected: ${sn}`);
+}
+
+function removePhoto(id){
+  proj.photos=proj.photos.filter(p=>p.id!==id);
+  saveProj(proj);patchPhotosSection();
+}
+
+function patchPhotosSection(){
+  const el=document.getElementById('photos-section');
+  if(el)el.innerHTML=renderPhotosSectionContent();
+}
+
+function startSNEdit(photoId,triggerEl){
+  const photo=proj.photos.find(p=>p.id===photoId);
+  if(!photo)return;
+  const inp=document.createElement('input');
+  inp.type='text';inp.value=photo.serialNumber||'';
+  inp.placeholder='Enter serial number';
+  inp.className='font-mono border border-orange-300 rounded-lg px-2 py-2 w-full bg-orange-50 focus:outline-none focus:border-orange-500';
+  triggerEl.replaceWith(inp);inp.focus();
+  const save=()=>{
+    const sn=inp.value.trim()||null;
+    photo.serialNumber=sn;saveProj(proj);
+    patchPhotosSection();
+  };
+  inp.addEventListener('blur',save,{once:true});
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();inp.blur();}
+    if(e.key==='Escape'){inp.removeEventListener('blur',save);inp.replaceWith(triggerEl);}
+  });
+}
+
+function renderPhotoThumb(photo){
+  const hasSN=photo.serialNumber!=null;
+  const snCls=hasSN?'text-green-600':'text-gray-400';
+  const snText=photo.scanning?'Scanning…':hasSN?esc(photo.serialNumber):'tap to add SN';
+  return`<div class="flex flex-col gap-1" id="photo-${photo.id}">
+    <div class="relative rounded-xl overflow-hidden bg-gray-100" style="aspect-ratio:1">
+      <img src="${photo.dataUrl}" class="w-full h-full object-cover" loading="lazy" draggable="false"/>
+      ${photo.scanning?`<div class="absolute inset-0 bg-black/50 flex items-center justify-center">
+        <span class="text-white text-[10px] font-semibold tracking-wide">SCANNING…</span>
+      </div>`:''}
+      <button class="absolute top-1 right-1 w-6 h-6 bg-black/60 rounded-full flex items-center justify-center text-white text-[10px] active:bg-black/80"
+        data-remove-photo="${photo.id}">✕</button>
+    </div>
+    <button data-edit-sn="${photo.id}"
+      class="text-xs ${snCls} truncate text-left px-1 py-0.5 leading-snug font-mono w-full active:opacity-60"
+      title="Tap to edit serial number">${snText}</button>
+  </div>`;
+}
+
+function renderPhotosSectionContent(){
+  const photos=proj.photos;
+  const snCount=photos.filter(p=>p.serialNumber).length;
+  const barcodeSupported='BarcodeDetector'in window;
+  return`<div class="px-4 pt-5 pb-2 flex items-center justify-between">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+      Photos${photos.length?` (${photos.length})`:''}
+    </p>
+    ${snCount?`<span class="text-xs text-green-600 font-medium">${snCount} SN${snCount!==1?'s':''} captured</span>`
+      :barcodeSupported?`<span class="text-xs text-gray-300">barcode scan ready</span>`
+      :`<span class="text-xs text-gray-300">manual SN entry</span>`}
+  </div>
+  <div class="px-4 pb-6">
+    <div class="flex gap-2 mb-4">
+      <label class="flex-1 cursor-pointer">
+        <span class="flex items-center justify-center gap-2 py-3 bg-orange-500 text-white font-semibold text-sm rounded-xl active:opacity-75">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>Take Photo
+        </span>
+        <input type="file" accept="image/*" capture="environment" class="hidden" data-photo-input/>
+      </label>
+      <label class="cursor-pointer">
+        <span class="flex items-center justify-center gap-1 px-4 py-3 bg-white border border-gray-200 text-gray-600 font-medium text-sm rounded-xl active:bg-gray-50 h-full">
+          Library
+        </span>
+        <input type="file" accept="image/*" class="hidden" data-photo-input/>
+      </label>
+    </div>
+    ${photos.length
+      ?`<div class="grid grid-cols-3 gap-2">${photos.map(p=>renderPhotoThumb(p)).join('')}</div>`
+      :`<p class="text-sm text-gray-400 text-center py-4 leading-relaxed">
+          No photos yet.<br/>Take photos of equipment labels<br/>to capture serial numbers.
+        </p>`}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PRICE OVERRIDES — Phase 4
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -866,6 +1035,9 @@ function renderProject(){
     <div style="min-height:calc(100vh - 56px - 72px)">
       ${proj.rooms.map(r=>renderRoom(r)).join('')}
       ${renderAddRoomSection()}
+      <div id="photos-section" class="bg-white border-t border-gray-100 mt-2">
+        ${renderPhotosSectionContent()}
+      </div>
     </div>
     <div class="sticky bottom-0 z-30 bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
       <div class="h-1.5 bg-gray-100 overflow-hidden">
@@ -962,6 +1134,12 @@ function setupListeners(){
     if(e.target.closest('[data-action="rename-proj"]')){openModal('rename-proj');return}
     if(e.target.closest('[data-action="open-settings"]')){openModal('settings');return}
 
+    const rp=e.target.closest('[data-remove-photo]');
+    if(rp){removePhoto(rp.dataset.removePhoto);return}
+
+    const esn=e.target.closest('[data-edit-sn]');
+    if(esn&&!e.target.matches('input')){startSNEdit(esn.dataset.editSn,esn);return}
+
     const ep=e.target.closest('[data-editprice]');
     if(ep){startPriceEdit(ep.dataset.room,ep.dataset.gkey,ep.dataset.item,ep);return}
 
@@ -989,6 +1167,11 @@ function setupListeners(){
   document.body.addEventListener('change',e=>{
     const cb=e.target;
     if(cb.dataset.checkbox!==undefined)handleCheck(cb.dataset.room,cb.dataset.gkey,cb.dataset.item,cb.checked);
+    if(cb.matches('[data-photo-input]')&&cb.files?.[0]){
+      handlePhotoFile(cb.files[0]);
+      cb.value='';
+      return;
+    }
     if(cb.id==='price-csv-input'&&cb.files?.[0]){
       const reader=new FileReader();
       reader.onload=ev=>{
