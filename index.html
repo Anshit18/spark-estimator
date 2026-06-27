@@ -12,15 +12,14 @@
   <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{}));</script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
     *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
     html{height:100%}
-    body{margin:0;min-height:100%;font-family:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
-    /* Prevent iOS Safari from zooming in on input focus (requires ≥16px font) */
+    body{margin:0;min-height:100%;font-family:'IBM Plex Sans',system-ui,sans-serif;overscroll-behavior:none;background:#0d0f12;color:#f4f5f7}
     input[type=text],input[type=number],input[type=file],textarea{font-size:max(16px,1rem)!important}
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -29,42 +28,46 @@
     .pt-safe{padding-top:max(0px,env(safe-area-inset-top))}
     #side-panel{transition:transform .25s cubic-bezier(.4,0,.2,1)}
     .group-body{transition:opacity .15s}
-    .cost-bar{position:absolute;bottom:0;left:0;height:3px;background:#ea580c;transition:width .45s cubic-bezier(.4,0,.2,1)}
-    .room-cost-bar{position:absolute;bottom:0;left:0;height:3px;background:#5eead4;transition:width .45s cubic-bezier(.4,0,.2,1)}
-    .na-on{background:rgba(94,234,212,0.15);color:#0f766e}
-    .na-off{background:rgba(255,255,255,0.1);color:rgba(234,229,236,0.7)}
+    /* orange gradient cost bar on group headers */
+    .cost-bar{position:absolute;bottom:0;left:0;height:3px;background:linear-gradient(90deg,#fb923c,#ea580c);transition:width .45s cubic-bezier(.4,0,.2,1)}
+    .room-cost-bar{position:absolute;bottom:0;left:0;height:3px;background:linear-gradient(90deg,#fb923c,#ea580c);transition:width .45s cubic-bezier(.4,0,.2,1)}
+    .na-on{background:rgba(70,192,138,0.15);color:#5fcf9a;border:1px solid rgba(70,192,138,0.3)}
+    .na-off{background:rgba(255,255,255,0.06);color:#707783;border:1px solid rgba(255,255,255,0.06)}
+    /* gradient text utility */
+    .grad-orange{background:linear-gradient(180deg,#fdeacf,#f97316);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .mono{font-family:'IBM Plex Mono',monospace}
     @media(prefers-reduced-motion:reduce){.cost-bar,.room-cost-bar,.group-body,#progress-bar,#side-panel{transition:none}}
   </style>
 </head>
-<body class="bg-gray-100">
+<body style="background:#0d0f12">
 
 <!-- ── Side panel ─────────────────────────────────────────────────────── -->
-<div id="panel-overlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
-<div id="side-panel" class="fixed top-0 left-0 h-full w-72 bg-white z-50 shadow-2xl -translate-x-full flex flex-col">
-  <div class="px-4 pt-safe flex-shrink-0" style="background:#0a0e17;color:#eae5ec">
+<div id="panel-overlay" class="fixed inset-0 z-40 hidden" style="background:rgba(4,5,7,0.6)"></div>
+<div id="side-panel" class="fixed top-0 left-0 h-full w-72 z-50 -translate-x-full flex flex-col" style="background:#16191f;box-shadow:4px 0 40px rgba(0,0,0,0.7),1px 0 0 rgba(255,255,255,0.05)">
+  <div class="px-4 pt-safe flex-shrink-0" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.06)">
     <div class="flex items-center justify-between py-4 mt-1">
-      <span class="font-bold text-lg">Projects</span>
-      <button id="close-panel" class="text-gray-400 p-2 text-xl leading-none active:text-white" style="min-width:44px;min-height:44px">✕</button>
+      <span class="font-bold text-base" style="color:#e9ecf0">Projects</span>
+      <button id="close-panel" class="p-2 text-xl leading-none active:opacity-60" style="color:#707783;min-width:44px;min-height:44px">✕</button>
     </div>
   </div>
-  <div id="panel-list" class="flex-1 overflow-y-auto divide-y divide-gray-50"></div>
-  <div class="p-4 border-t border-gray-100 flex-shrink-0 safe-bot space-y-2">
-    <button id="compare-btn" class="w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold text-sm active:bg-slate-200 flex items-center justify-center gap-2">
+  <div id="panel-list" class="flex-1 overflow-y-auto"></div>
+  <div class="p-4 flex-shrink-0 safe-bot space-y-2" style="border-top:1px solid rgba(255,255,255,0.06)">
+    <button id="compare-btn" class="w-full py-2.5 rounded-xl font-semibold text-sm active:opacity-70 flex items-center justify-center gap-2" style="background:#1c2027;border:1px solid rgba(255,255,255,0.07);color:#aab1bd">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
       Compare Projects
     </button>
-    <button id="panel-new" class="w-full py-3 rounded-xl bg-orange-500 text-white font-semibold text-sm active:opacity-75">+ New Project</button>
+    <button id="panel-new" class="w-full py-3 rounded-xl text-white font-semibold text-sm active:opacity-80" style="background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 8px 20px -6px rgba(234,88,12,0.5)">+ New Project</button>
   </div>
 </div>
 
 <!-- ── Modal ─────────────────────────────────────────────────────────── -->
 <div id="modal" class="fixed inset-0 z-[60] hidden">
-  <div id="modal-bg" class="absolute inset-0 bg-black/60"></div>
+  <div id="modal-bg" class="absolute inset-0" style="background:rgba(4,5,7,0.66);backdrop-filter:blur(2px)"></div>
   <div class="absolute inset-0 overflow-y-auto pointer-events-none">
     <div class="flex min-h-full items-center justify-center p-5">
-      <div id="modal-box" class="bg-white rounded-2xl shadow-2xl w-full max-w-sm pointer-events-auto my-auto"></div>
+      <div id="modal-box" class="rounded-2xl w-full max-w-sm pointer-events-auto my-auto" style="background:#232831;box-shadow:0 44px 90px -20px rgba(0,0,0,0.85),0 0 0 1px rgba(255,255,255,0.08),inset 0 1px 0 rgba(255,255,255,0.07)"></div>
     </div>
   </div>
 </div>
@@ -223,6 +226,15 @@ const ROOM_TYPES = {
   bathroom:{label:'Bathroom',            groups:['vanity','tub_shower','tile_ba'],                          singleton:false},
   bedroom: {label:'Bedroom',             groups:['flooring','paint_wall','doors'],                          singleton:false},
   living:  {label:'Living / Common Area',groups:['flooring','paint_wall','doors'],                          singleton:false},
+};
+const ROOM_COLORS={
+  interior:{dot:'#5b9dff',glow:'rgba(91,157,255,0.7)', text:'#7db0ff',radial:'rgba(91,157,255,0.10)', dashed:'rgba(91,157,255,0.45)'},
+  systems: {dot:'#7c8cf8',glow:'rgba(124,140,248,0.7)',text:'#96a2fa',radial:'rgba(124,140,248,0.11)',dashed:'rgba(124,140,248,0.45)'},
+  exterior:{dot:'#38c4c4',glow:'rgba(56,196,196,0.7)', text:'#56d2d2',radial:'rgba(56,196,196,0.11)', dashed:'rgba(56,196,196,0.45)'},
+  kitchen: {dot:'#46c08a',glow:'rgba(70,192,138,0.7)', text:'#5fcf9a',radial:'rgba(70,192,138,0.11)', dashed:'rgba(70,192,138,0.45)'},
+  bathroom:{dot:'#38c4c4',glow:'rgba(56,196,196,0.7)', text:'#56d2d2',radial:'rgba(56,196,196,0.11)', dashed:'rgba(56,196,196,0.45)'},
+  bedroom: {dot:'#a78bfa',glow:'rgba(167,139,250,0.7)',text:'#b9a3fb',radial:'rgba(167,139,250,0.11)',dashed:'rgba(167,139,250,0.45)'},
+  living:  {dot:'#d3a24e',glow:'rgba(211,162,78,0.7)', text:'#e0bd7a',radial:'rgba(211,162,78,0.11)', dashed:'rgba(211,162,78,0.45)'},
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -481,11 +493,10 @@ function patchProgress(){
   const{pct,done,total}=progressStats(proj);
   const bar=document.getElementById('progress-bar');
   const txt=document.getElementById('progress-txt');
-  if(bar){bar.style.width=pct+'%';bar.style.background=pct===100?'#5eead4':'#ea580c';}
-  if(txt){
-    txt.textContent=pct===100?`All ${total} groups reviewed`:`${pct}% · ${done} of ${total} groups reviewed`;
-    txt.style.color=pct===100?'#0d9488':'#9ca3af';
-  }
+  const lbl=document.getElementById('progress-label');
+  if(bar){bar.style.width=pct+'%';bar.style.background=pct===100?'linear-gradient(90deg,#5fcf9a,#46c08a)':'linear-gradient(90deg,#cdd3dc,#eef1f5)';}
+  if(txt)txt.textContent=pct+'%';
+  if(lbl)lbl.textContent=pct===100?'ALL GROUPS REVIEWED':`${pct}% · ${done} OF ${total} GROUPS`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -497,14 +508,15 @@ function handleCheck(roomId,gKey,itemId,checked){
   const item=room.groups[gKey]?.items[itemId];
   if(!item)return;
   item.checked=checked;
-  if(checked&&!item.qty){
-    item.qty=1;
-    const qEl=document.getElementById(`qty-${roomId}-${gKey}-${itemId}`);
-    if(qEl&&!qEl.value)qEl.value='1';
-  }
+  if(checked&&!item.qty)item.qty=1;
   saveProj(proj);
+  // Re-render the full item row so the checkbox visual updates
   const rowEl=document.getElementById(`irow-${roomId}-${gKey}-${itemId}`);
-  if(rowEl)rowEl.classList.toggle('opacity-40',!checked);
+  if(rowEl){
+    const tmp=document.createElement('div');
+    tmp.innerHTML=renderItem(room,gKey,itemId);
+    rowEl.replaceWith(tmp.firstElementChild);
+  }
   patchLineTotal(roomId,gKey,itemId);
   patchGroupSub(roomId,gKey);
   patchRoomSub(roomId);
@@ -828,17 +840,17 @@ function renderPhotosSectionContent(){
   const snCount=photos.filter(p=>p.serialNumber).length;
   const barcodeSupported='BarcodeDetector'in window;
   return`<div class="px-4 pt-5 pb-2 flex items-center justify-between">
-    <p class="text-xs font-semibold uppercase tracking-wider" style="color:rgba(10,14,23,0.4)">
+    <p class="text-xs font-semibold uppercase tracking-wider" style="color:#707783;letter-spacing:0.14em">
       Photos${photos.length?` (${photos.length})`:''}
     </p>
-    ${snCount?`<span class="text-xs text-green-600 font-medium">${snCount} SN${snCount!==1?'s':''} captured</span>`
-      :barcodeSupported?`<span class="text-xs text-gray-300">barcode scan ready</span>`
-      :`<span class="text-xs text-gray-300">manual SN entry</span>`}
+    ${snCount?`<span class="text-xs font-medium" style="color:#5fcf9a">${snCount} SN${snCount!==1?'s':''} captured</span>`
+      :barcodeSupported?`<span class="text-xs" style="color:#5a626d">barcode scan ready</span>`
+      :`<span class="text-xs" style="color:#5a626d">manual SN entry</span>`}
   </div>
   <div class="px-4 pb-6">
     <div class="flex gap-2 mb-4">
       <label class="flex-1 cursor-pointer">
-        <span class="flex items-center justify-center gap-2 py-3 bg-orange-500 text-white font-semibold text-sm rounded-xl active:opacity-75">
+        <span class="flex items-center justify-center gap-2 py-3 text-white font-semibold text-sm rounded-xl active:opacity-80" style="background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 8px 20px -6px rgba(234,88,12,0.45)">
           <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -847,7 +859,7 @@ function renderPhotosSectionContent(){
         <input type="file" accept="image/*" capture="environment" class="hidden" data-photo-input/>
       </label>
       <label class="cursor-pointer">
-        <span class="flex items-center justify-center gap-1 px-4 py-3 bg-white border border-gray-200 text-gray-600 font-medium text-sm rounded-xl active:bg-gray-50 h-full">
+        <span class="flex items-center justify-center gap-1 px-4 py-3 font-medium text-sm rounded-xl active:opacity-70 h-full" style="background:#1c2027;border:1px solid rgba(255,255,255,0.07);color:#aab1bd">
           Library
         </span>
         <input type="file" accept="image/*" class="hidden" data-photo-input/>
@@ -855,7 +867,7 @@ function renderPhotosSectionContent(){
     </div>
     ${photos.length
       ?`<div class="grid grid-cols-3 gap-2">${photos.map(p=>renderPhotoThumb(p)).join('')}</div>`
-      :`<p class="text-sm text-gray-400 text-center py-4 leading-relaxed">
+      :`<p class="text-sm text-center py-4 leading-relaxed" style="color:#5a626d">
           No photos yet.<br/>Take photos of equipment labels<br/>to capture serial numbers.
         </p>`}
   </div>`;
@@ -894,8 +906,8 @@ function priceBtn(roomId,gKey,itemId,cost,unit,hasOverride){
   btn.dataset.gkey=gKey;
   btn.dataset.item=itemId;
   btn.innerHTML=hasOverride
-    ?`<span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span style="color:rgba(10,14,23,0.3)">/ ${esc(unit)}</span>`
-    :`<span style="color:rgba(10,14,23,0.4)">${fmtCost(cost)}</span> <span style="color:rgba(10,14,23,0.25)">/ ${esc(unit)}</span>`;
+    ?`<span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span class="mono" style="color:#5a626d">/ ${esc(unit)}</span>`
+    :`<span class="mono" style="color:#5a626d">${fmtCost(cost)} / ${esc(unit)}</span>`;
   return btn;
 }
 
@@ -941,39 +953,44 @@ function startPriceEdit(roomId,gKey,itemId,triggerEl){
 // ═══════════════════════════════════════════════════════════════════════════
 // MODAL SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════
-const INPUT_CLS='w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-orange-400 focus:bg-white';
-const BTN_CANCEL='flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium text-sm active:bg-gray-50';
-const BTN_OK    ='flex-1 py-3 rounded-xl bg-orange-500 text-white font-semibold text-sm active:opacity-75';
-const BTN_DANGER='flex-1 py-3 rounded-xl bg-red-500 text-white font-semibold text-sm active:opacity-75';
+const INPUT_CLS='w-full rounded-xl px-4 py-3 text-sm focus:outline-none';
+const INPUT_STY='background:#1a1e24;border:1px solid rgba(255,255,255,0.09);color:#d8dde4';
+const BTN_CANCEL='flex-1 py-3 rounded-xl font-medium text-sm active:opacity-70';
+const BTN_CANCEL_STY='background:#1a1e24;border:1px solid rgba(255,255,255,0.08);color:#aab1bd';
+const BTN_OK    ='flex-1 py-3 rounded-xl text-white font-semibold text-sm active:opacity-80';
+const BTN_OK_STY='background:linear-gradient(180deg,#f97316,#ea580c)';
+const BTN_DANGER='flex-1 py-3 rounded-xl text-white font-semibold text-sm active:opacity-80';
+const BTN_DANGER_STY='background:#b91c1c';
 
 function renderModalContent(st){
+  const inp=`class="${INPUT_CLS}" style="${INPUT_STY}"`;
   if(st.mode==='new-proj') return`<div class="p-6">
-    <h3 class="font-bold text-lg mb-4" style="color:#0a0e17">New Project</h3>
-    <input id="mf1" type="text" placeholder="Property name or address" autocomplete="off" class="${INPUT_CLS} mb-3"/>
-    <input id="mf2" type="text" placeholder="Full address (optional)" autocomplete="off" class="${INPUT_CLS} mb-4"/>
+    <h3 class="font-bold text-lg mb-4" style="color:#e9ecf0">New Project</h3>
+    <input id="mf1" type="text" placeholder="Property name or address" autocomplete="off" ${inp} style="${INPUT_STY};margin-bottom:10px;display:block;width:100%"/>
+    <input id="mf2" type="text" placeholder="Full address (optional)" autocomplete="off" ${inp} style="${INPUT_STY};margin-bottom:18px;display:block;width:100%"/>
     <div class="flex gap-3">
-      <button data-modal-cancel class="${BTN_CANCEL}">Cancel</button>
-      <button data-modal-confirm class="${BTN_OK}">Create</button>
+      <button data-modal-cancel class="${BTN_CANCEL}" style="${BTN_CANCEL_STY}">Cancel</button>
+      <button data-modal-confirm class="${BTN_OK}" style="${BTN_OK_STY}">Create</button>
     </div></div>`;
 
   if(st.mode==='rename-proj') return`<div class="p-6">
-    <h3 class="font-bold text-lg mb-4" style="color:#0a0e17">Rename Project</h3>
-    <input id="mf1" type="text" value="${esc(proj?.name||'')}" autocomplete="off" class="${INPUT_CLS} mb-3"/>
-    <input id="mf2" type="text" value="${esc(proj?.address||'')}" placeholder="Address (optional)" autocomplete="off" class="${INPUT_CLS} mb-4"/>
+    <h3 class="font-bold text-lg mb-4" style="color:#e9ecf0">Rename Project</h3>
+    <input id="mf1" type="text" value="${esc(proj?.name||'')}" autocomplete="off" ${inp} style="${INPUT_STY};margin-bottom:10px;display:block;width:100%"/>
+    <input id="mf2" type="text" value="${esc(proj?.address||'')}" placeholder="Address (optional)" autocomplete="off" ${inp} style="${INPUT_STY};margin-bottom:18px;display:block;width:100%"/>
     <div class="flex gap-3">
-      <button data-modal-cancel class="${BTN_CANCEL}">Cancel</button>
-      <button data-modal-confirm class="${BTN_OK}">Save</button>
+      <button data-modal-cancel class="${BTN_CANCEL}" style="${BTN_CANCEL_STY}">Cancel</button>
+      <button data-modal-confirm class="${BTN_OK}" style="${BTN_OK_STY}">Save</button>
     </div></div>`;
 
   if(st.mode==='rename-room'){
     const room=proj?.rooms.find(r=>r.id===st.roomId);
     return`<div class="p-6">
-      <h3 class="font-bold text-lg mb-1" style="color:#0a0e17">Rename Room</h3>
-      <p class="text-xs text-gray-400 uppercase tracking-wider mb-4">${esc(room?.label||'')}</p>
-      <input id="mf1" type="text" value="${esc(room?.label||'')}" autocomplete="off" class="${INPUT_CLS} mb-4"/>
+      <h3 class="font-bold text-lg mb-1" style="color:#e9ecf0">Rename Room</h3>
+      <p class="text-xs uppercase tracking-wider mb-4" style="color:#707783">${esc(room?.label||'')}</p>
+      <input id="mf1" type="text" value="${esc(room?.label||'')}" autocomplete="off" ${inp} style="${INPUT_STY};margin-bottom:18px;display:block;width:100%"/>
       <div class="flex gap-3">
-        <button data-modal-cancel class="${BTN_CANCEL}">Cancel</button>
-        <button data-modal-confirm class="${BTN_OK}">Save</button>
+        <button data-modal-cancel class="${BTN_CANCEL}" style="${BTN_CANCEL_STY}">Cancel</button>
+        <button data-modal-confirm class="${BTN_OK}" style="${BTN_OK_STY}">Save</button>
       </div></div>`;
   }
 
@@ -982,49 +999,54 @@ function renderModalContent(st){
     const hasData=room&&roomHasData(room);
     const sub=room?computeRoomSub(room):0;
     const dataMsg=hasData
-      ?`<div class="flex gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
-          <span class="text-amber-500 text-base leading-snug flex-shrink-0">⚠</span>
-          <p class="text-sm text-amber-800">This room has data entered${sub>0?` (${fmt(sub)} in items)`:''}.
+      ?`<div class="flex gap-2.5 rounded-xl px-4 py-3 mb-4" style="background:rgba(234,88,12,0.1);border:1px solid rgba(234,88,12,0.25)">
+          <span style="color:#fb923c" class="text-base leading-snug flex-shrink-0">⚠</span>
+          <p class="text-sm" style="color:#fca97c">This room has data entered${sub>0?` (${fmt(sub)} in items)`:''}.
           All items, quantities, and cost notes will be permanently deleted.</p>
         </div>`
-      :`<p class="text-sm text-gray-500 mb-4">This room has no data entered.</p>`;
+      :`<p class="text-sm mb-4" style="color:#707783">This room has no data entered.</p>`;
     return`<div class="p-6">
-      <h3 class="font-bold text-lg mb-3" style="color:#0a0e17">Remove <span style="color:#ea580c">${esc(room?.label||'room')}</span>?</h3>
+      <h3 class="font-bold text-lg mb-3" style="color:#e9ecf0">Remove <span style="color:#ea580c">${esc(room?.label||'room')}</span>?</h3>
       ${dataMsg}
       <div class="flex gap-3">
-        <button data-modal-cancel class="${BTN_CANCEL}">Keep</button>
-        <button data-modal-confirm class="${BTN_DANGER}">Remove</button>
+        <button data-modal-cancel class="${BTN_CANCEL}" style="${BTN_CANCEL_STY}">Keep</button>
+        <button data-modal-confirm class="${BTN_DANGER}" style="${BTN_DANGER_STY}">Remove</button>
       </div></div>`;
   }
 
   if(st.mode==='settings'){
     const gp=getGlobalPrices();
     const customCount=Object.keys(gp).length;
-    const statusCls=customCount>0?'bg-orange-50 text-orange-700 border border-orange-100':'bg-gray-50 text-gray-500';
-    const statusMsg=customCount>0
-      ?`Custom prices active — ${customCount} item${customCount!==1?'s':''} overridden`
-      :'Using default prices from Pricing List.csv';
-    return`<div class="p-6">
-      <div class="flex items-center justify-between mb-5">
-        <h3 class="font-bold text-lg" style="color:#0a0e17">Settings</h3>
-        <button data-modal-cancel class="p-2 -mr-2 text-xl leading-none active:opacity-50" style="color:rgba(10,14,23,0.4)">✕</button>
+    const syncBadge=customCount>0
+      ?`<span class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background:rgba(251,146,60,0.15);border:1px solid rgba(251,146,60,0.3);color:#fb923c">${customCount} overridden</span>`
+      :`<span class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background:rgba(70,192,138,0.13);border:1px solid rgba(70,192,138,0.3);color:#5fcf9a">In sync</span>`;
+    return`<div class="p-5">
+      <div class="flex items-center justify-between mb-5" style="border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:14px">
+        <h3 class="font-bold text-lg" style="color:#e9ecf0">Settings</h3>
+        <button data-modal-cancel class="flex items-center justify-center active:opacity-50" style="width:38px;height:38px;border-radius:11px;background:#2c323c;border:1px solid rgba(255,255,255,0.07);color:#aab1bd;font-size:16px">✕</button>
       </div>
-      <h4 class="text-sm font-semibold mb-1" style="color:#0a0e17">Global Price Schedule</h4>
-      <p class="text-xs text-gray-400 mb-3 leading-relaxed">Upload a CSV to update standard prices across <em>all</em> projects. Use the same format as Pricing List.csv — columns: id, name, cost, unit.</p>
-      <div class="${statusCls} rounded-xl px-4 py-2.5 text-sm mb-4">${statusMsg}</div>
-      <div class="space-y-2">
+      <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:#7c828e">Global Price Schedule</p>
+      <div class="rounded-xl p-3.5 flex items-center gap-3 mb-2" style="background:#1a1e24;border:1px solid rgba(255,255,255,0.06)">
+        <div class="flex items-center justify-center flex-shrink-0" style="width:38px;height:38px;border-radius:10px;background:#262b33;font-size:18px">📋</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium" style="color:#cfd4db">Price List</div>
+          <div class="text-xs mono" style="color:#707783">repair-items.csv</div>
+        </div>
+        ${syncBadge}
+      </div>
+      <div class="space-y-2 mt-3">
         <label class="block cursor-pointer">
-          <span class="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-orange-500 text-white font-semibold text-sm active:opacity-75">
+          <span class="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-white font-semibold text-sm active:opacity-80" style="background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 8px 20px -6px rgba(234,88,12,0.45)">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
             Upload New Prices (CSV)
           </span>
           <input type="file" accept=".csv,.CSV" id="price-csv-input" class="hidden"/>
         </label>
-        <button id="dl-prices-btn" class="w-full py-3 rounded-xl text-gray-600 text-sm font-medium border border-gray-200 active:bg-gray-50 flex items-center justify-center gap-2">
+        <button id="dl-prices-btn" class="w-full py-3 rounded-xl text-sm font-medium active:opacity-70 flex items-center justify-center gap-2" style="background:#1a1e24;border:1px solid rgba(255,255,255,0.07);color:#aab1bd">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           Download Current Price Template
         </button>
-        ${customCount>0?`<button id="reset-prices-btn" class="w-full py-3 rounded-xl text-red-400 text-sm font-semibold border border-red-100 active:bg-red-50">Reset to Default Prices</button>`:''}
+        ${customCount>0?`<button id="reset-prices-btn" class="w-full py-3 rounded-xl text-sm font-semibold active:opacity-70" style="background:rgba(185,28,28,0.15);border:1px solid rgba(185,28,28,0.3);color:#f87171">Reset to Default Prices</button>`:''}
       </div>
     </div>`;
   }
@@ -1079,22 +1101,33 @@ function renderItem(room,gKey,itemId){
   const cost=effectiveCost(itemId,proj,item);
   const lt=item.checked&&item.qty?cost*item.qty:0;
   const k=`${room.id}-${gKey}-${itemId}`;
-  return`<div id="irow-${k}" class="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 ${item.checked?'':'opacity-40'}">
-    <input type="checkbox" class="w-5 h-5 flex-shrink-0 accent-orange-500 cursor-pointer rounded"
-      ${item.checked?'checked':''}
-      data-checkbox data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"/>
-    <div class="flex-1 min-w-0">
-      <div class="text-sm font-medium leading-snug" style="color:#0a0e17">${esc(def.name)}</div>
-      ${item.costOverride!=null
-        ?`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span style="color:rgba(10,14,23,0.3)">/ ${esc(def.unit)}</span></button>`
-        :`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span style="color:rgba(10,14,23,0.4)">${fmtCost(cost)}</span> <span style="color:rgba(10,14,23,0.25)">/ ${esc(def.unit)}</span></button>`}
+  const chk=item.checked;
+  const checkEl=chk
+    ?`<div class="flex-shrink-0 flex items-center justify-center" style="width:22px;height:22px;border-radius:7px;background:#46c08a;color:#072014;font-size:13px;font-weight:700">✓</div>`
+    :`<div class="flex-shrink-0" style="width:22px;height:22px;border-radius:7px;border:1.5px solid #3a414c"></div>`;
+  return`<div id="irow-${k}" class="flex items-center gap-3 px-3 py-2.5 ${chk?'':'opacity-50'}" style="border-top:1px solid rgba(255,255,255,0.03)">
+    <div class="cursor-pointer" data-checkbox data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}" style="min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-start">
+      ${checkEl}
     </div>
-    <div class="flex items-center gap-1.5 flex-shrink-0">
-      <input id="qty-${k}" type="number" min="0" step="0.5" inputmode="decimal"
-        class="w-16 text-right bg-white border border-gray-200 rounded-lg px-2 py-2 font-medium focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-200"
-        value="${item.qty||''}" placeholder="0"
-        data-qty data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"/>
-      <div id="lt-${k}" class="w-16 text-right text-sm font-semibold text-orange-600 tabular-nums">${lt>0?fmt(lt):''}</div>
+    <div class="flex-1 min-w-0">
+      <div class="font-medium leading-snug" style="font-size:14px;color:${chk?'#d8dde4':'#aab1bd'}">${esc(def.name)}</div>
+      ${item.costOverride!=null
+        ?`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span class="mono" style="color:#5a626d">/ ${esc(def.unit)}</span></button>`
+        :`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5 mono" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span style="color:#5a626d">${fmtCost(cost)} / ${esc(def.unit)}</span></button>`}
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <div class="flex items-center" style="background:#0d1014;border:1px solid rgba(255,255,255,0.07);border-radius:9px;height:34px">
+        <button class="flex items-center justify-center" style="width:30px;color:#9aa1ad;font-size:16px"
+          data-qty-dec data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}">−</button>
+        <input id="qty-${k}" type="number" min="0" step="0.5" inputmode="decimal"
+          class="mono text-right focus:outline-none bg-transparent"
+          style="width:46px;font-size:14px;color:#e8ebef;font-variant-numeric:tabular-nums;border:none;padding:0 2px"
+          value="${item.qty||''}" placeholder="0"
+          data-qty data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"/>
+        <button class="flex items-center justify-center" style="width:30px;color:#9aa1ad;font-size:16px"
+          data-qty-inc data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}">+</button>
+      </div>
+      <div id="lt-${k}" class="mono tabular-nums text-right grad-orange" style="font-size:13.5px;min-width:54px">${lt>0?fmt(lt):''}</div>
     </div>
   </div>`;
 }
@@ -1102,20 +1135,27 @@ function renderItem(room,gKey,itemId){
 function renderCustomItem(room,gKey,ci){
   const k=`${room.id}-${gKey}-ci-${ci.id}`;
   const lt=ci.checked&&ci.qty?(ci.cost||0)*ci.qty:0;
-  return`<div id="irow-${k}" class="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0 bg-orange-50/30 ${ci.checked?'':'opacity-40'}">
-    <input type="checkbox" class="w-5 h-5 flex-shrink-0 accent-orange-500 cursor-pointer"
-      ${ci.checked?'checked':''}
-      data-ci-check data-room="${room.id}" data-gkey="${gKey}" data-ci="${ci.id}"/>
-    <div class="flex-1 min-w-0">
-      <div class="text-sm font-medium leading-snug" style="color:#0a0e17">${esc(ci.name)}</div>
-      <div class="text-xs" style="color:rgba(10,14,23,0.4)">${fmtCost(ci.cost||0)} / ${esc(ci.unit||'ea.')}</div>
+  const chk=ci.checked;
+  const checkEl=chk
+    ?`<div class="flex-shrink-0 flex items-center justify-center" style="width:22px;height:22px;border-radius:7px;background:#46c08a;color:#072014;font-size:13px;font-weight:700">✓</div>`
+    :`<div class="flex-shrink-0" style="width:22px;height:22px;border-radius:7px;border:1.5px solid #3a414c"></div>`;
+  return`<div id="irow-${k}" class="flex items-center gap-3 px-3 py-2.5 ${chk?'':'opacity-50'}" style="border-top:1px solid rgba(255,255,255,0.03);background:rgba(251,146,60,0.04)">
+    <div class="cursor-pointer" data-ci-check data-room="${room.id}" data-gkey="${gKey}" data-ci="${ci.id}" style="min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-start">
+      ${checkEl}
     </div>
-    <div class="flex items-center gap-1.5 flex-shrink-0">
-      <input type="number" min="0" step="0.5" inputmode="decimal"
-        class="w-16 text-right bg-white border border-gray-200 rounded-lg px-2 py-2 font-medium focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-200"
-        value="${ci.qty||''}" placeholder="0"
-        data-ci-qty data-room="${room.id}" data-gkey="${gKey}" data-ci="${ci.id}"/>
-      <div class="w-16 text-right text-sm font-semibold text-orange-600 tabular-nums">${lt>0?fmt(lt):''}</div>
+    <div class="flex-1 min-w-0">
+      <div class="font-medium leading-snug" style="font-size:14px;color:${chk?'#d8dde4':'#aab1bd'}">${esc(ci.name)}</div>
+      <div class="mono" style="font-size:11px;color:#5a626d">${fmtCost(ci.cost||0)} / ${esc(ci.unit||'ea.')}</div>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <div class="flex items-center" style="background:#0d1014;border:1px solid rgba(255,255,255,0.07);border-radius:9px;height:34px">
+        <input type="number" min="0" step="0.5" inputmode="decimal"
+          class="mono text-right focus:outline-none bg-transparent"
+          style="width:58px;font-size:14px;color:#e8ebef;font-variant-numeric:tabular-nums;border:none;padding:0 8px"
+          value="${ci.qty||''}" placeholder="0"
+          data-ci-qty data-room="${room.id}" data-gkey="${gKey}" data-ci="${ci.id}"/>
+      </div>
+      <div class="mono tabular-nums text-right grad-orange" style="font-size:13.5px;min-width:54px">${lt>0?fmt(lt):''}</div>
     </div>
   </div>`;
 }
@@ -1127,25 +1167,30 @@ function renderGroup(room,gKey,projTotal=0){
   const sub=computeGroupSub(room,gKey);
   const isCollapsed=collapsed.has(`${room.id}|${gKey}`);
   const barPct=projTotal>0?Math.min(Math.round(sub/projTotal*100),100):0;
-  return`<div class="border-b border-gray-100 last:border-0">
-    <div class="flex items-center gap-2 px-4 py-3 cursor-pointer select-none active:opacity-80 relative overflow-hidden"
-      style="background:#141923"
+  return`<div style="padding:6px 12px 0">
+    <div class="cursor-pointer select-none active:opacity-80 relative overflow-hidden"
+      style="background:#12151a;border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:11px 13px;margin-bottom:${isCollapsed?'6px':'0'};border-bottom-left-radius:${isCollapsed?'12px':'4px'};border-bottom-right-radius:${isCollapsed?'12px':'4px'}"
       data-collapse data-room="${room.id}" data-gkey="${gKey}">
-      <svg id="chev-${room.id}-${gKey}" class="w-4 h-4 flex-shrink-0 transition-transform ${isCollapsed?'-rotate-90':''}"
-        style="color:rgba(234,229,236,0.45)"
-        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-      </svg>
-      <span class="flex-1 text-sm font-bold" style="color:#eae5ec">${esc(def.label)}</span>
-      <span id="nab-${room.id}-${gKey}"
-        class="text-xs px-3 py-1.5 rounded-full font-medium cursor-pointer ${g.noAction?'na-on':'na-off'}"
-        data-noaction data-room="${room.id}" data-gkey="${gKey}">
-        ${g.noAction?'✓ No Action':'No Action'}
-      </span>
-      <span id="gsub-${room.id}-${gKey}" class="text-sm font-bold w-16 text-right tabular-nums" style="color:#ea580c">${sub>0?fmt(sub):''}</span>
-      <div id="gbar-${room.id}-${gKey}" class="cost-bar" style="width:${barPct}%"></div>
+      <div class="flex items-center gap-2">
+        <svg id="chev-${room.id}-${gKey}" class="w-3.5 h-3.5 flex-shrink-0 transition-transform ${isCollapsed?'-rotate-90':''}"
+          style="color:#5a626d"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+        <span class="flex-1 text-sm font-semibold" style="color:#d8dde4">${esc(def.label)}</span>
+        <span id="nab-${room.id}-${gKey}"
+          class="text-xs px-2.5 py-1 rounded-full font-medium cursor-pointer ${g.noAction?'na-on':'na-off'}"
+          data-noaction data-room="${room.id}" data-gkey="${gKey}">
+          ${g.noAction?'✓ No Action':'No Action'}
+        </span>
+        <span id="gsub-${room.id}-${gKey}" class="mono font-bold tabular-nums grad-orange" style="font-size:13.5px;min-width:54px;text-align:right">${sub>0?fmt(sub):''}</span>
+      </div>
+      ${sub>0?`<div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:10px">
+        <div style="height:100%;width:${barPct}%;border-radius:3px;background:linear-gradient(90deg,#fb923c,#ea580c);box-shadow:0 0 8px rgba(234,88,12,0.5)"></div>
+      </div>`:''}
+      <div id="gbar-${room.id}-${gKey}" class="cost-bar" style="display:none;width:${barPct}%"></div>
     </div>
-    <div id="gb-${room.id}-${gKey}" class="group-body ${isCollapsed?'hidden':''}" style="${g.noAction?'opacity:0.35':''}">
+    <div id="gb-${room.id}-${gKey}" class="group-body ${isCollapsed?'hidden':''}" style="${g.noAction?'opacity:0.35;':''}background:#12151a;border:1px solid rgba(255,255,255,0.04);border-top:none;border-bottom-left-radius:12px;border-bottom-right-radius:12px;padding-bottom:4px;margin-bottom:6px">
       ${def.items.filter(id=>!g.removedItems.includes(id)).map(id=>renderItem(room,gKey,id)).join('')}
       ${g.customItems.map(ci=>renderCustomItem(room,gKey,ci)).join('')}
     </div>
@@ -1154,27 +1199,29 @@ function renderGroup(room,gKey,projTotal=0){
 
 function renderRoom(room,projTotal=0){
   const rt=ROOM_TYPES[room.type];
+  const rc=ROOM_COLORS[room.type]||ROOM_COLORS.interior;
   const sub=computeRoomSub(room);
   const roomBarPct=projTotal>0?Math.min(Math.round(sub/projTotal*100),100):0;
-  const pencilSvg=`<svg class="w-3 h-3" style="color:rgba(234,229,236,0.5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+  const pencilSvg=`<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="color:rgba(255,255,255,0.25)">
     <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
   </svg>`;
   const closeSvg=`<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
   </svg>`;
   return`<section>
-    <div class="sticky top-14 z-20 flex items-center gap-2 px-4 py-3 relative overflow-hidden" style="background:#0a0e17">
+    <div class="sticky z-20 flex items-center gap-2.5 px-4 py-3 relative overflow-hidden" style="top:90px;background:radial-gradient(130% 90% at 0% 0%,${rc.radial},rgba(0,0,0,0) 55%),#15181d;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <span class="flex-shrink-0" style="width:9px;height:9px;border-radius:50%;background:${rc.dot};box-shadow:0 0 9px ${rc.glow}"></span>
       <button class="flex items-center gap-1.5 min-w-0 flex-1 active:opacity-70 text-left"
         data-rename-room="${room.id}" title="Tap to rename">
-        <span class="text-xs font-bold uppercase tracking-wider truncate" style="color:#eae5ec;letter-spacing:1px">${esc(room.label)}</span>
+        <span class="font-bold uppercase truncate" style="font-size:10.5px;letter-spacing:0.14em;color:${rc.text}">${esc(room.label)}</span>
         <span class="flex-shrink-0">${pencilSvg}</span>
       </button>
-      <span id="rsub-${room.id}" class="font-bold text-sm tabular-nums flex-shrink-0" style="color:#ea580c">${sub>0?fmt(sub):''}</span>
-      ${!rt.singleton?`<button class="w-9 h-9 flex items-center justify-center rounded-full flex-shrink-0 active:bg-white/10" style="color:rgba(234,229,236,0.5)"
+      <span id="rsub-${room.id}" class="mono font-bold tabular-nums flex-shrink-0 grad-orange" style="font-size:16px;font-weight:600">${sub>0?fmt(sub):''}</span>
+      ${!rt.singleton?`<button class="flex items-center justify-center flex-shrink-0 active:opacity-60" style="width:36px;height:36px;border-radius:10px;color:#8a6f6f"
         data-remove-room="${room.id}" title="Remove ${esc(room.label)}">${closeSvg}</button>`:''}
       <div id="rbar-${room.id}" class="room-cost-bar" style="width:${roomBarPct}%"></div>
     </div>
-    <div class="bg-white">
+    <div>
       ${rt.groups.map(gKey=>renderGroup(room,gKey,projTotal)).join('')}
     </div>
   </section>`;
@@ -1183,13 +1230,17 @@ function renderRoom(room,projTotal=0){
 function renderAddRoomSection(){
   const nonSingleton=Object.entries(ROOM_TYPES).filter(([,rt])=>!rt.singleton);
   return`<div class="px-4 py-5">
-    <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:rgba(10,14,23,0.4)">Add Room</p>
+    <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="letter-spacing:0.14em;color:#707783">Add Room</p>
     <div class="flex flex-wrap gap-2">
-      ${nonSingleton.map(([type,rt])=>`
-        <button class="px-3.5 py-2 bg-white rounded-xl text-sm font-semibold active:opacity-60 active:scale-95 transition-transform"
-          style="border:1.5px solid rgba(10,14,23,0.18);color:#0a0e17"
-          data-add-room="${type}">+ ${rt.label}</button>
-      `).join('')}
+      ${nonSingleton.map(([type,rt])=>{
+        const rc=ROOM_COLORS[type]||ROOM_COLORS.kitchen;
+        return`<button class="px-3.5 py-2 rounded-xl text-sm font-semibold active:opacity-60 active:scale-95 transition-transform flex items-center gap-2"
+          style="background:#1c2027;border:1px solid ${rc.dashed};color:${rc.text}"
+          data-add-room="${type}">
+          <span style="width:7px;height:7px;border-radius:50%;background:${rc.dot};display:inline-block;flex-shrink:0"></span>
+          + ${rt.label}
+        </button>`;
+      }).join('')}
     </div>
   </div>`;
 }
@@ -1204,83 +1255,101 @@ function renderTriageView(){
   const restTotal=restItems.reduce((s,i)=>s+i.lt,0);
   const maxCost=items[0]?.lt||1;
   const paretoPct=total>0?Math.round(paretoItems.reduce((s,i)=>s+i.lt,0)/total*100):0;
-  const backBtn=`<button data-action="back-to-project" class="p-2 -ml-2 active:opacity-60" style="color:#eae5ec">
+  const backBtn=`<button data-action="back-to-project" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#1c2027;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:#aab1bd">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
     </svg></button>`;
-  const header=`<div class="sticky top-0 z-30 pt-safe" style="background:#0a0e17">
-    <div class="flex items-center h-14 px-4 gap-3">
+  const header=`<div class="sticky top-0 z-30 pt-safe" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.05)">
+    <div class="flex items-center px-4 gap-3" style="height:58px">
       ${backBtn}
-      <div class="flex-1 min-w-0">
-        <div class="font-semibold text-sm" style="color:#eae5ec">Cost Triage</div>
-        <div class="text-xs truncate" style="color:rgba(234,229,236,0.55)">${esc(proj.name)}</div>
+      <div class="flex-1 min-w-0 px-1">
+        <div class="font-semibold" style="font-size:15px;color:#e9ecf0">Cost Triage</div>
+        <div class="truncate" style="font-size:12px;color:#707783">${esc(proj.name)}</div>
       </div>
       <div class="text-right flex-shrink-0">
-        <div class="text-xs" style="color:rgba(234,229,236,0.55)">total</div>
-        <div class="text-sm font-bold tabular-nums" style="color:#eae5ec">${fmt(total)}</div>
+        <div style="font-size:10px;letter-spacing:0.1em;color:#707783;font-weight:600">TOTAL</div>
+        <div class="mono font-bold tabular-nums grad-orange" style="font-size:15px">${fmt(total)}</div>
       </div>
     </div>
   </div>`;
   if(!items.length) return header+`<div class="flex flex-col items-center justify-center py-20 px-8 text-center">
-    <div class="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-      <svg class="w-7 h-7 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+    <div class="flex items-center justify-center mb-4" style="width:56px;height:56px;border-radius:16px;background:#1c2027;border:1px solid rgba(255,255,255,0.06)">
+      <svg class="w-7 h-7" style="color:#5a626d" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
     </div>
-    <p class="text-gray-500 font-medium text-sm mb-1">No items checked yet</p>
-    <p class="text-gray-400 text-xs leading-relaxed">Check items during the walkthrough to see what's driving cost here.</p>
+    <p class="font-medium text-sm mb-1" style="color:#aab1bd">No items checked yet</p>
+    <p class="text-xs leading-relaxed" style="color:#5a626d">Check items during the walkthrough to see what's driving cost here.</p>
   </div>`;
+
+  // Pareto callout card
+  const pareto=`<div class="px-4 pt-4">
+    <div style="background:radial-gradient(120% 130% at 100% 0%,rgba(234,88,12,0.16),rgba(234,88,12,0) 60%),#1c2027;border:1px solid rgba(249,115,22,0.22);border-radius:16px;padding:15px 16px;box-shadow:0 8px 32px -12px rgba(234,88,12,0.35)">
+      <div style="font-size:11px;letter-spacing:0.1em;color:#f7a04a;font-weight:600">PARETO CUTOFF</div>
+      <div class="flex items-end justify-between mt-1">
+        <div>
+          <div class="mono grad-orange" style="font-size:32px;font-weight:600;line-height:1">${paretoPct}%</div>
+          <div style="font-size:13px;color:#aab1bd;padding-bottom:3px">${paretoItems.length} item${paretoItems.length!==1?'s':''} drive ${paretoPct}% of cost</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;height:7px;border-radius:5px;background:rgba(255,255,255,0.07);overflow:hidden;position:relative">
+        <div style="height:100%;width:${paretoPct}%;border-radius:5px;background:linear-gradient(90deg,#fb923c,#ea580c)"></div>
+        <div style="position:absolute;top:-3px;bottom:-3px;left:80%;width:2px;background:rgba(255,255,255,0.55)"></div>
+      </div>
+      <div style="font-size:10px;letter-spacing:0.1em;color:#707783;margin-top:5px">80% threshold marker</div>
+    </div>
+  </div>`;
+
+  // Triage item cards — intensity decreases for each item
+  const triageIntensity=[0.16,0.12,0.10,0.08,0.06,0.05,0.04];
+  const triageBorder=[0.28,0.24,0.20,0.16,0.12,0.10,0.08];
   const itemRows=paretoItems.map((item,i)=>{
     const barPct=Math.round(item.lt/maxCost*100);
     const sharePct=Math.round(item.lt/total*100);
-    return`<div class="px-4 py-3.5 border-b border-gray-100">
-      <div class="flex items-start gap-3">
-        <span class="text-xl font-bold w-7 text-right flex-shrink-0 leading-none mt-0.5 tabular-nums" style="color:rgba(94,234,212,0.5)">${i+1}</span>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-start justify-between gap-2">
-            <div class="min-w-0">
-              <div class="text-sm font-semibold leading-snug" style="color:#0a0e17">${esc(item.name)}</div>
-              <div class="text-xs text-gray-400 mt-0.5">${esc(item.room)} · ${esc(item.group)}</div>
+    const intensity=triageIntensity[Math.min(i,triageIntensity.length-1)];
+    const bdr=triageBorder[Math.min(i,triageBorder.length-1)];
+    return`<div class="px-4 mt-3">
+      <div style="background:radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,${intensity}),rgba(234,88,12,0) 55%),#1d2128;border:1px solid rgba(249,115,22,${bdr});border-radius:14px;padding:12px 14px;box-shadow:0 6px 20px -10px rgba(234,88,12,${intensity*2})">
+        <div class="flex items-start gap-3">
+          <span class="mono font-bold flex-shrink-0" style="font-size:15px;color:#f7a04a;width:22px">${i+1}</span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="font-semibold leading-snug" style="font-size:14px;color:#d8dde4">${esc(item.name)}</div>
+                <div class="flex items-center gap-1.5 mt-1">
+                  <span class="text-xs px-2 py-0.5 rounded" style="background:rgba(124,140,248,0.13);border:1px solid rgba(124,140,248,0.25);color:#96a2fa">${esc(item.room)}</span>
+                  <span class="text-xs" style="color:#5a626d">${esc(item.group)}</span>
+                </div>
+              </div>
+              <div class="text-right flex-shrink-0">
+                <div class="mono font-bold tabular-nums grad-orange" style="font-size:15px">${fmt(item.lt)}</div>
+                <div style="font-size:10px;color:#707783">${sharePct}%</div>
+              </div>
             </div>
-            <div class="text-right flex-shrink-0">
-              <div class="text-sm font-bold tabular-nums" style="color:#ea580c">${fmt(item.lt)}</div>
-              <div class="text-xs text-gray-400">${sharePct}%</div>
+            <div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:10px">
+              <div style="height:100%;width:${barPct}%;border-radius:3px;background:linear-gradient(90deg,#fb923c,#ea580c);box-shadow:0 0 8px rgba(234,88,12,${0.4+i*0.05})"></div>
             </div>
-          </div>
-          <div class="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div class="h-full rounded-full" style="width:${barPct}%;background:#ea580c"></div>
           </div>
         </div>
       </div>
     </div>`;
   }).join('');
-  const restSection=restItems.length?`<div class="border-t px-4 py-4" style="background:#f8f9fb;border-color:#e5e9f0">
-    <div class="flex justify-between items-center mb-3">
-      <span class="text-xs font-semibold uppercase tracking-wider" style="color:rgba(10,14,23,0.45)">Remaining items</span>
-      <span class="text-sm font-semibold tabular-nums" style="color:#0a0e17">${fmt(restTotal)} · ${Math.round(restTotal/total*100)}%</span>
-    </div>
-    <div class="space-y-1.5">
-      ${restItems.slice(0,6).map(item=>`<div class="flex justify-between items-center text-xs" style="color:rgba(10,14,23,0.55)">
-        <span class="truncate mr-2 flex-1">${esc(item.name)}<span class="ml-1" style="color:rgba(10,14,23,0.3)">· ${esc(item.room)}</span></span>
-        <span class="flex-shrink-0 tabular-nums font-medium">${fmt(item.lt)}</span>
-      </div>`).join('')}
-      ${restItems.length>6?`<div class="text-xs pt-1" style="color:rgba(10,14,23,0.35)">…and ${restItems.length-6} more</div>`:''}
-    </div>
+
+  const divider=restItems.length?`<div class="flex items-center gap-3 px-4 py-4 mt-3">
+    <div style="flex:1;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.22) 0 5px,transparent 5px 10px)"></div>
+    <span style="font-size:10px;letter-spacing:0.1em;color:#868e9b;font-weight:600;white-space:nowrap">BELOW 80% THRESHOLD</span>
+    <div style="flex:1;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.22) 0 5px,transparent 5px 10px)"></div>
   </div>`:'';
-  return`${header}
-  <div class="px-5 py-4 bg-[#EA580C] flex items-center justify-between">
-    <div>
-      <p class="text-sm font-bold text-white">${paretoItems.length} item${paretoItems.length!==1?'s':''} = ${paretoPct}% of cost</p>
-      <p class="text-xs text-orange-100 mt-0.5">Fix these first to move the number most.</p>
+
+  const restSection=restItems.length?restItems.slice(0,6).map(item=>`<div class="px-4 mb-2">
+    <div class="flex items-center gap-3" style="background:#131619;border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:11px 14px;opacity:0.72">
+      <span class="mono flex-shrink-0" style="font-size:13px;color:#5a626d;width:22px">${restItems.indexOf(item)+paretoItems.length+1}</span>
+      <span class="flex-1 min-w-0 truncate" style="font-size:13.5px;color:#aab1bd">${esc(item.name)}</span>
+      <span class="mono" style="font-size:13.5px;color:#9aa1ad">${fmt(item.lt)}</span>
     </div>
-    <div class="text-right flex-shrink-0 ml-4">
-      <div class="text-3xl font-bold text-white tabular-nums leading-none">${paretoPct}%</div>
-      <div class="text-xs text-orange-200 mt-0.5">of total</div>
-    </div>
-  </div>
-  <div class="bg-white">${itemRows}</div>
-  ${restSection}
-  <div class="h-8"></div>`;
+  </div>`).join(''):'';
+
+  return`${header}${pareto}${itemRows}${divider}${restSection}<div style="height:40px"></div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1289,39 +1358,44 @@ function renderTriageView(){
 function renderComparePicker(slot){
   const list=loadList();
   const takenId=slot==='b'?cmpState.a:cmpState.b;
-  return`<div class="sticky top-0 z-30 pt-safe" style="background:#0a0e17">
-    <div class="flex items-center h-14 px-4 gap-3">
-      <button data-action="compare-close" class="p-2 -ml-2 active:opacity-60" style="color:#eae5ec">
+  const accentDot=slot==='a'?'#f97316':'#6f8bb0';
+  return`<div class="sticky top-0 z-30 pt-safe" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.05)">
+    <div class="flex items-center px-4 gap-3" style="height:58px">
+      <button data-action="compare-close" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#1c2027;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:#aab1bd">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
-      <div class="flex-1">
-        <div class="font-semibold text-sm" style="color:#eae5ec">Compare Projects</div>
-        <div class="text-xs" style="color:rgba(234,229,236,0.55)">Pick Project ${slot.toUpperCase()}</div>
+      <div class="flex-1 px-1">
+        <div class="font-semibold" style="font-size:15px;color:#e9ecf0">Compare Projects</div>
+        <div style="font-size:12px;color:#707783">Pick Project ${slot.toUpperCase()}</div>
       </div>
     </div>
   </div>
   <div class="px-4 pt-4 pb-2">
-    <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">
-      ${slot==='a'?'Select the first project':'Now select the second project to compare'}
+    <p class="text-xs font-semibold uppercase tracking-wider" style="color:#707783;letter-spacing:0.14em">
+      ${slot==='a'?'Select the first project':'Now select the second project'}
     </p>
   </div>
-  <div class="divide-y divide-gray-50 bg-white">
+  <div>
     ${list.map(p=>{
       const isTaken=p.id===takenId;
       const full=loadProj(p.id);
       const tot=full?computeTotal(full):0;
       const pct=full?progressStats(full).pct:0;
-      return`<button class="w-full text-left px-4 py-4 active:bg-gray-50 flex items-center justify-between gap-3 ${isTaken?'opacity-30 pointer-events-none':''}"
+      return`<button class="w-full text-left px-4 py-3.5 flex items-center justify-between gap-3 active:opacity-70 ${isTaken?'opacity-25 pointer-events-none':''}"
+        style="border-bottom:1px solid rgba(255,255,255,0.04)"
         data-cmp-pick="${slot}|${p.id}">
-        <div class="min-w-0">
-          <div class="font-medium text-sm text-gray-900 truncate">${esc(p.name)}</div>
-          ${p.address?`<div class="text-xs text-gray-400 truncate">${esc(p.address)}</div>`:''}
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+          <span style="width:8px;height:8px;border-radius:50%;background:${accentDot};flex-shrink:0"></span>
+          <div class="min-w-0">
+            <div class="font-medium truncate" style="font-size:14px;color:#d8dde4">${esc(p.name)}</div>
+            ${p.address?`<div class="truncate" style="font-size:11px;color:#5a626d">${esc(p.address)}</div>`:''}
+          </div>
         </div>
         <div class="text-right flex-shrink-0">
-          <div class="text-sm font-bold text-gray-900 tabular-nums">${tot?fmt(tot):'$0'}</div>
-          <div class="text-xs text-gray-400">${pct}% done</div>
+          <div class="mono font-bold tabular-nums" style="font-size:14px;color:#cfd4db">${tot?fmt(tot):'$0'}</div>
+          <div style="font-size:11px;color:#5a626d">${pct}% done</div>
         </div>
       </button>`;
     }).join('')}
@@ -1335,77 +1409,75 @@ function renderComparisonResult(pA,pB){
   const cheaper=totA<=totB?'a':'b';
   const diffPct=Math.max(totA,totB)>0?Math.round(diff/Math.max(totA,totB)*100):0;
   const secA=getSectionCosts(pA), secB=getSectionCosts(pB);
+  const secDots={interior:'#5b9dff',systems:'#7c8cf8',exterior:'#38c4c4',kitchen:'#46c08a',bathroom:'#38c4c4',bedroom:'#a78bfa',living:'#d3a24e'};
   const sectionRows=Object.entries(ROOM_TYPES).map(([type,rt])=>{
     const sa=secA[type]?.total||0, sb=secB[type]?.total||0;
     if(!sa&&!sb)return'';
     const mx=Math.max(sa,sb,1);
     const wA=Math.round(sa/mx*100), wB=Math.round(sb/mx*100);
-    const diffS=Math.abs(sa-sb);
-    const tag=diffS>0?`<span class="text-[10px] ${sa<sb?'text-green-600':'text-red-400'} font-medium ml-1">${sa<sb?'↓':'↑'}${fmt(diffS)}</span>`:'';
+    const dot=secDots[type]||'#707783';
     return`<div class="mb-4">
-      <div class="flex items-center justify-between mb-1.5">
-        <span class="text-xs font-semibold text-gray-600">${rt.label}${tag}</span>
+      <div class="flex items-center gap-2 mb-2">
+        <span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0"></span>
+        <span style="font-size:13px;color:#d8dde4">${rt.label}</span>
       </div>
-      <div class="flex items-center gap-2 mb-1">
-        <span class="w-3 h-3 rounded-sm bg-orange-500 flex-shrink-0"></span>
-        <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-          <div class="h-full bg-[#EA580C] rounded-full transition-all" style="width:${wA}%"></div>
+      <div class="flex items-center gap-2 mb-1.5">
+        <div class="flex-1 overflow-hidden" style="height:9px;border-radius:3px;background:rgba(255,255,255,0.05)">
+          <div style="height:100%;width:${wA}%;background:linear-gradient(90deg,#fb923c,#ea580c);border-radius:3px;transition:width .3s"></div>
         </div>
-        <span class="text-xs text-gray-700 w-14 text-right tabular-nums font-medium">${fmt(sa)}</span>
+        <span class="mono text-right flex-shrink-0" style="font-size:11.5px;color:#cfd4db;width:50px">${fmt(sa)}</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="w-3 h-3 rounded-sm flex-shrink-0" style="background:#5eead4"></span>
-        <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-          <div class="h-full rounded-full transition-all" style="width:${wB}%;background:#5eead4"></div>
+        <div class="flex-1 overflow-hidden" style="height:9px;border-radius:3px;background:rgba(255,255,255,0.05)">
+          <div style="height:100%;width:${wB}%;background:#6f8bb0;border-radius:3px;transition:width .3s"></div>
         </div>
-        <span class="text-xs text-gray-700 w-14 text-right tabular-nums font-medium">${fmt(sb)}</span>
+        <span class="mono text-right flex-shrink-0" style="font-size:11.5px;color:#9aa1ad;width:50px">${fmt(sb)}</span>
       </div>
     </div>`;
   }).join('');
-  return`<div class="sticky top-0 z-30 pt-safe" style="background:#0a0e17">
-    <div class="flex items-center h-14 px-4 gap-3">
-      <button data-action="compare-close" class="p-2 -ml-2 active:opacity-60" style="color:#eae5ec">
+  return`<div class="sticky top-0 z-30 pt-safe" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.05)">
+    <div class="flex items-center px-4 gap-3" style="height:58px">
+      <button data-action="compare-close" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#1c2027;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:#aab1bd">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
-      <span class="flex-1 font-semibold text-sm" style="color:#eae5ec">Project Comparison</span>
-      <button data-action="compare-reset" class="text-xs font-semibold px-3 py-2 active:opacity-70" style="color:#5eead4;min-height:44px">Reselect</button>
+      <span class="flex-1 font-semibold px-1" style="font-size:15px;color:#e9ecf0">Project Comparison</span>
+      <button data-action="compare-reset" class="font-semibold active:opacity-70" style="font-size:12px;color:#7db0ff;min-height:44px;padding:0 8px">Reselect</button>
     </div>
   </div>
-  <div class="grid grid-cols-2 gap-3 px-4 pt-4 pb-1">
-    <div class="bg-orange-50 border border-orange-100 rounded-2xl p-3.5">
-      <div class="flex items-center gap-1.5 mb-1">
-        <span class="w-2.5 h-2.5 rounded-sm bg-orange-500 flex-shrink-0"></span>
-        <span class="text-[10px] font-bold text-orange-600 uppercase tracking-wider">Project A</span>
+  <div class="flex gap-3 px-4 pt-4 pb-1">
+    <div class="flex-1 rounded-2xl p-3.5" style="background:#1c2027;border:1px solid rgba(249,115,22,0.22);box-shadow:0 0 24px -10px rgba(234,88,12,0.4)">
+      <div class="flex items-center gap-1.5 mb-2">
+        <span style="width:7px;height:7px;border-radius:2px;background:#f97316;display:inline-block"></span>
+        <span style="font-size:10px;letter-spacing:0.08em;color:#aab1bd;font-weight:600">PROJECT A</span>
       </div>
-      <div class="font-semibold text-gray-900 text-sm leading-snug truncate">${esc(pA.name)}</div>
-      ${pA.address?`<div class="text-xs text-gray-500 truncate mt-0.5">${esc(pA.address)}</div>`:''}
-      <div class="text-2xl font-bold text-[#111827] mt-2 tabular-nums">${fmt(totA)}</div>
-      <div class="text-xs text-gray-500 mt-0.5">${pctA}% reviewed</div>
+      <div class="font-semibold leading-snug truncate" style="font-size:13px;color:#e9ecf0">${esc(pA.name)}</div>
+      ${pA.address?`<div class="truncate" style="font-size:11px;color:#5a626d;margin-top:2px">${esc(pA.address)}</div>`:''}
+      <div class="mono font-semibold tabular-nums grad-orange" style="font-size:22px;margin-top:8px;line-height:1">${fmt(totA)}</div>
+      <div class="mono" style="font-size:11px;color:#707783;margin-top:5px">${pctA}% reviewed</div>
     </div>
-    <div class="rounded-2xl p-3.5" style="background:#0a0e17">
-      <div class="flex items-center gap-1.5 mb-1">
-        <span class="w-2.5 h-2.5 rounded-sm flex-shrink-0" style="background:#5eead4"></span>
-        <span class="text-[10px] font-bold uppercase tracking-wider" style="color:#5eead4">Project B</span>
+    <div class="flex-1 rounded-2xl p-3.5" style="background:#1c2027;border:1px solid rgba(255,255,255,0.06)">
+      <div class="flex items-center gap-1.5 mb-2">
+        <span style="width:7px;height:7px;border-radius:2px;background:#6f8bb0;display:inline-block"></span>
+        <span style="font-size:10px;letter-spacing:0.08em;color:#aab1bd;font-weight:600">PROJECT B</span>
       </div>
-      <div class="font-semibold text-sm leading-snug truncate" style="color:#eae5ec">${esc(pB.name)}</div>
-      ${pB.address?`<div class="text-xs truncate mt-0.5" style="color:rgba(234,229,236,0.5)">${esc(pB.address)}</div>`:''}
-      <div class="text-2xl font-bold mt-2 tabular-nums" style="color:#eae5ec">${fmt(totB)}</div>
-      <div class="text-xs mt-0.5" style="color:rgba(234,229,236,0.5)">${pctB}% reviewed</div>
+      <div class="font-semibold leading-snug truncate" style="font-size:13px;color:#e9ecf0">${esc(pB.name)}</div>
+      ${pB.address?`<div class="truncate" style="font-size:11px;color:#5a626d;margin-top:2px">${esc(pB.address)}</div>`:''}
+      <div class="mono font-semibold tabular-nums" style="font-size:22px;margin-top:8px;line-height:1;background:linear-gradient(180deg,#eef2f8,#6f8bb0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">${fmt(totB)}</div>
+      <div class="mono" style="font-size:11px;color:#707783;margin-top:5px">${pctB}% reviewed</div>
     </div>
   </div>
-  ${diff>0?`<div class="mx-4 my-3 px-4 py-2.5 rounded-xl flex items-center justify-center gap-2"
-    style="${cheaper==='a'?'background:#fef9f0;border:1px solid #fed7aa':'background:#0a0e17'}">
-    <span class="text-sm font-semibold" style="${cheaper==='a'?'color:#92400e':'color:#5eead4'}">
-      Project ${cheaper.toUpperCase()} is ${fmt(diff)} less expensive (${diffPct}% cheaper)
-    </span>
-  </div>`:'<div class="mx-4 my-3 px-4 py-2.5 rounded-xl text-center text-sm font-medium" style="background:#f8f9fb;color:rgba(10,14,23,0.5)">Projects have equal estimated cost</div>'}
+  ${diff>0?`<div class="mx-4 my-3 flex items-center justify-center gap-3 rounded-xl py-3 px-4" style="background:#15181d;border:1px solid rgba(255,255,255,0.05)">
+    <span style="font-size:13px;color:#aab1bd">Project ${cheaper.toUpperCase()} is cheaper by</span>
+    <span class="mono font-bold" style="font-size:14px;color:#e0bd7a">${fmt(diff)}</span>
+    <span style="font-size:13px;color:#aab1bd">(${diffPct}%)</span>
+  </div>`:`<div class="mx-4 my-3 rounded-xl py-3 px-4 text-center" style="background:#15181d;border:1px solid rgba(255,255,255,0.05);font-size:13px;color:#707783">Equal estimated cost</div>`}
   <div class="px-4 pb-6">
-    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Cost by Section</p>
+    <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:#707783;letter-spacing:0.14em">Cost by Section</p>
     <div class="flex items-center gap-4 mb-4">
-      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-orange-500"></span><span class="text-xs text-gray-600">Project A</span></div>
-      <div class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm" style="background:#5eead4"></span><span class="text-xs text-gray-600">Project B</span></div>
+      <div class="flex items-center gap-2"><span style="width:8px;height:8px;border-radius:2px;background:#f97316;display:inline-block"></span><span style="font-size:11px;color:#868e9b">Project A</span></div>
+      <div class="flex items-center gap-2"><span style="width:8px;height:8px;border-radius:2px;background:#6f8bb0;display:inline-block"></span><span style="font-size:11px;color:#868e9b">Project B</span></div>
     </div>
     ${sectionRows}
   </div>`;
@@ -1413,11 +1485,11 @@ function renderComparisonResult(pA,pB){
 
 function renderCompareView(){
   const list=loadList();
-  if(list.length<2) return`<div class="flex flex-col items-center justify-center min-h-screen px-8 text-center">
+  if(list.length<2) return`<div class="flex flex-col items-center justify-center min-h-screen px-8 text-center" style="background:#0d0f12">
     <div class="text-4xl mb-4">⚖</div>
-    <h2 class="font-bold text-gray-900 text-lg mb-2">Need 2 projects to compare</h2>
-    <p class="text-gray-500 text-sm mb-6">You only have ${list.length} project saved. Create another one first.</p>
-    <button data-action="compare-close" class="px-5 py-3 bg-orange-500 text-white font-semibold rounded-xl text-sm active:opacity-75">Back</button>
+    <h2 class="font-bold text-lg mb-2" style="color:#e9ecf0">Need 2 projects to compare</h2>
+    <p class="text-sm mb-6" style="color:#707783">You only have ${list.length} project saved. Create another one first.</p>
+    <button data-action="compare-close" class="px-5 py-3 text-white font-semibold rounded-xl text-sm active:opacity-80" style="background:linear-gradient(180deg,#f97316,#ea580c)">Back</button>
   </div>`;
   if(!cmpState.a) return renderComparePicker('a');
   if(!cmpState.b) return renderComparePicker('b');
@@ -1429,60 +1501,63 @@ function renderCompareView(){
 function renderProject(){
   const costTotal=computeTotal(proj);
   const{pct,done,total:grpTotal}=progressStats(proj);
+  const iconBtn=`display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:#1c2027;border:1px solid rgba(255,255,255,0.06);color:#aab1bd`;
   return`
-    <div class="sticky top-0 z-30 pt-safe" style="background:#0a0e17">
-      <div class="flex items-center h-14 px-4 gap-3">
-        <button data-open-side class="p-2 -ml-2 active:opacity-60" style="color:#eae5ec">
+    <div class="sticky top-0 z-30 pt-safe" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div class="flex items-center px-4 gap-2" style="height:58px">
+        <button data-open-side class="active:opacity-60 flex-shrink-0" style="${iconBtn}">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
           </svg>
         </button>
-        <div class="flex-1 min-w-0">
-          <div class="font-semibold text-sm leading-tight truncate" style="color:#eae5ec">${esc(proj.name)}</div>
-          ${proj.address?`<div class="text-xs truncate" style="color:rgba(234,229,236,0.55)">${esc(proj.address)}</div>`:''}
+        <div class="flex-1 min-w-0 px-2">
+          <div class="font-semibold leading-tight truncate" style="font-size:15px;color:#e9ecf0;letter-spacing:-0.01em">${esc(proj.name)}</div>
+          ${proj.address?`<div class="truncate" style="font-size:12px;color:#707783;margin-top:1px">${esc(proj.address)}</div>`:''}
         </div>
-        <button data-action="open-triage" class="p-2 active:opacity-60" style="color:rgba(234,229,236,0.6)" title="Cost triage">
+        <button data-action="open-triage" class="active:opacity-60 flex-shrink-0" style="${iconBtn}" title="Cost triage">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
           </svg>
         </button>
-        <button data-action="rename-proj" class="p-2 active:opacity-60" style="color:rgba(234,229,236,0.6)" title="Rename project">
+        <button data-action="rename-proj" class="active:opacity-60 flex-shrink-0" style="${iconBtn}" title="Rename project">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
           </svg>
         </button>
-        <button data-action="open-settings" class="p-2 -mr-2 relative active:opacity-60" style="color:rgba(234,229,236,0.6)" title="Settings / pricing">
+        <button data-action="open-settings" class="active:opacity-60 flex-shrink-0 relative" style="${iconBtn}" title="Settings / pricing">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
-          ${Object.keys(getGlobalPrices()).length>0?'<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-orange-500 rounded-full"></span>':''}
+          ${Object.keys(getGlobalPrices()).length>0?'<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style="background:#ea580c"></span>':''}
         </button>
       </div>
+      <div class="px-4 pb-3">
+        <div class="flex items-center justify-between mb-2">
+          <span id="progress-label" style="font-size:10.5px;letter-spacing:0.13em;color:#707783;font-weight:600">${pct===100?'ALL GROUPS REVIEWED':`${pct}% · ${done} OF ${grpTotal} GROUPS`}</span>
+          <span id="progress-txt" class="mono" style="font-size:11.5px;color:#aab1bd">${pct}%</span>
+        </div>
+        <div style="height:6px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden">
+          <div id="progress-bar" class="transition-all duration-500 ease-out" style="height:100%;border-radius:4px;width:${pct}%;background:${pct===100?'linear-gradient(90deg,#5fcf9a,#46c08a)':'linear-gradient(90deg,#cdd3dc,#eef1f5)'}"></div>
+        </div>
+      </div>
     </div>
-    <div style="min-height:calc(100vh - 56px - 72px)">
+    <div style="min-height:calc(100vh - 90px - 84px)">
       ${proj.rooms.map(r=>renderRoom(r,costTotal)).join('')}
       ${renderAddRoomSection()}
-      <div id="photos-section" class="bg-white border-t border-gray-100 mt-2">
+      <div id="photos-section" style="border-top:1px solid rgba(255,255,255,0.05);margin-top:8px">
         ${renderPhotosSectionContent()}
       </div>
     </div>
-    <div class="sticky bottom-0 z-30 bg-white border-t border-gray-100 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-      <div class="h-1.5 bg-gray-100 overflow-hidden">
-        <div id="progress-bar"
-          class="h-full transition-all duration-500 ease-out"
-          style="width:${pct}%;background:${pct===100?'#5eead4':'#ea580c'}"></div>
-      </div>
-      <div class="flex items-center justify-between px-5 pt-3 pb-4 safe-bot">
+    <div class="sticky bottom-0 z-30" style="background:#1c2027;border-top:1px solid rgba(255,255,255,0.07);box-shadow:0 -14px 34px -10px rgba(0,0,0,0.5)">
+      <div class="flex items-center justify-between px-5 pt-3.5 pb-4 safe-bot gap-4">
         <div>
-          <div id="progress-txt"
-            class="text-xs font-medium mb-0.5"
-            style="color:${pct===100?'#0d9488':'#9ca3af'}">
-            ${pct===100?`All ${grpTotal} groups reviewed`:`${pct}% · ${done} of ${grpTotal} groups reviewed`}
-          </div>
-          <div id="footer-total" class="text-3xl font-bold text-[#111827] tabular-nums">${fmt(costTotal)}</div>
+          <div class="uppercase" style="font-size:10px;letter-spacing:0.14em;color:#707783;font-weight:600">Total Cost</div>
+          <div id="footer-total" class="mono grad-orange tabular-nums" style="font-size:31px;font-weight:600;line-height:1.05;margin-top:3px">${fmt(costTotal)}</div>
         </div>
         <button data-action="export"
-          class="px-5 py-3 bg-orange-500 text-white font-semibold rounded-xl text-sm active:opacity-75 select-none">
+          class="flex-shrink-0 text-white font-semibold text-sm active:opacity-80 select-none flex items-center gap-2"
+          style="height:50px;padding:0 22px;border-radius:14px;background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 10px 24px -8px rgba(234,88,12,0.5)">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           Export ZIP
         </button>
       </div>
@@ -1493,30 +1568,30 @@ function renderProject(){
 function renderWelcome(){
   const list=loadList();
   return`
-    <div class="min-h-screen flex flex-col">
-      <div class="pt-safe flex-shrink-0" style="background:#0a0e17">
+    <div class="min-h-screen flex flex-col" style="background:#0d0f12">
+      <div class="pt-safe flex-shrink-0" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.05)">
         <div class="flex items-center h-14 px-4 gap-3">
-          <button data-open-side class="p-2 -ml-2 active:opacity-60" style="color:rgba(234,229,236,0.6);min-width:44px;min-height:44px">
+          <button data-open-side class="active:opacity-60 flex items-center justify-center" style="color:#aab1bd;min-width:44px;min-height:44px">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
           </button>
-          <span class="font-semibold text-base" style="color:#eae5ec">Spark Estimator</span>
+          <span class="font-semibold" style="font-size:15px;color:#e9ecf0">Spark Estimator</span>
         </div>
       </div>
       <div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <div class="w-20 h-20 rounded-[28px] bg-orange-500 flex items-center justify-center mb-6 shadow-xl">
+        <div class="flex items-center justify-center mb-6" style="width:80px;height:80px;border-radius:28px;background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 20px 50px -15px rgba(234,88,12,0.6)">
           <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75V21a.75.75 0 01-.75.75H3.75A.75.75 0 013 21V9.75z"/>
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 21V12h6v9"/>
           </svg>
         </div>
-        <h1 class="text-2xl font-bold text-gray-900 mb-2">Spark Estimator</h1>
-        <p class="text-gray-500 mb-10 text-sm max-w-xs leading-relaxed">Fast repair cost estimates during property walkthroughs.</p>
-        <button data-open-modal class="w-full max-w-xs py-4 bg-orange-500 text-white rounded-2xl font-semibold text-base shadow-lg active:opacity-75 active:scale-95 transition-transform">
+        <h1 class="text-2xl font-bold mb-2" style="color:#e9ecf0">Spark Estimator</h1>
+        <p class="mb-10 text-sm max-w-xs leading-relaxed" style="color:#707783">Fast repair cost estimates during property walkthroughs.</p>
+        <button data-open-modal class="w-full max-w-xs py-4 text-white rounded-2xl font-semibold text-base active:opacity-80 active:scale-95 transition-transform" style="background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 14px 36px -10px rgba(234,88,12,0.55)">
           + Start New Project
         </button>
-        ${list.length>0?`<button data-open-side class="mt-5 text-orange-600 font-medium text-sm py-2">
+        ${list.length>0?`<button data-open-side class="mt-5 font-medium text-sm py-2" style="color:#f97316">
           View ${list.length} existing project${list.length!==1?'s':''} →
         </button>`:''}
       </div>
@@ -1536,16 +1611,17 @@ function render(){
 function refreshPanelList(){
   const list=loadList();
   document.getElementById('panel-list').innerHTML=list.length===0
-    ?'<p class="text-sm text-gray-400 text-center py-8 px-4">No projects yet</p>'
-    :list.map(p=>`
-      <button class="w-full text-left px-4 py-3.5 active:bg-gray-50 ${proj&&p.id===proj.id?'border-l-[3px]':''}"
-        style="${proj&&p.id===proj.id?'background:rgba(94,234,212,0.07);border-color:#5eead4':''}"
+    ?`<p class="text-sm text-center py-8 px-4" style="color:#5a626d">No projects yet</p>`
+    :list.map(p=>{
+      const isActive=proj&&p.id===proj.id;
+      return`<button class="w-full text-left px-4 py-3.5 active:opacity-70 ${isActive?'border-l-[3px]':''}"
+        style="${isActive?'background:rgba(91,157,255,0.07);border-color:#5b9dff':'border-bottom:1px solid rgba(255,255,255,0.04)'}"
         data-switch="${p.id}">
-        <div class="font-semibold text-sm truncate" style="color:#0a0e17">${esc(p.name)}</div>
-        ${p.address?`<div class="text-xs text-gray-400 truncate mt-0.5">${esc(p.address)}</div>`:''}
-        <div class="text-xs text-gray-400 mt-0.5">${new Date(p.updatedAt).toLocaleDateString()}</div>
-      </button>
-    `).join('');
+        <div class="font-semibold text-sm truncate" style="color:${isActive?'#e9ecf0':'#cfd4db'}">${esc(p.name)}</div>
+        ${p.address?`<div class="truncate mt-0.5" style="font-size:11px;color:#5a626d">${esc(p.address)}</div>`:''}
+        <div class="mt-0.5 mono" style="font-size:11px;color:#5a626d">${new Date(p.updatedAt).toLocaleDateString()}</div>
+      </button>`;
+    }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1623,11 +1699,38 @@ function setupListeners(){
 
     const removeRoom_=e.target.closest('[data-remove-room]');
     if(removeRoom_){openModal('remove-room',{roomId:removeRoom_.dataset.removeRoom});return}
+
+    // New click-based checkbox (div with data-checkbox)
+    const cbDiv=e.target.closest('[data-checkbox]');
+    if(cbDiv&&cbDiv.tagName!=='INPUT'){
+      const room=proj.rooms.find(r=>r.id===cbDiv.dataset.room);
+      const item=room?.groups[cbDiv.dataset.gkey]?.items[cbDiv.dataset.item];
+      if(item){handleCheck(cbDiv.dataset.room,cbDiv.dataset.gkey,cbDiv.dataset.item,!item.checked);}
+      return;
+    }
+
+    // Qty stepper buttons
+    const qdec=e.target.closest('[data-qty-dec]');
+    if(qdec){
+      const inp=document.getElementById(`qty-${qdec.dataset.room}-${qdec.dataset.gkey}-${qdec.dataset.item}`);
+      const cur=parseFloat(inp?.value)||0;
+      const nv=Math.max(0,cur-1);
+      if(inp){inp.value=nv||'';handleQtyInput(qdec.dataset.room,qdec.dataset.gkey,qdec.dataset.item,String(nv));}
+      return;
+    }
+    const qinc=e.target.closest('[data-qty-inc]');
+    if(qinc){
+      const inp=document.getElementById(`qty-${qinc.dataset.room}-${qinc.dataset.gkey}-${qinc.dataset.item}`);
+      const cur=parseFloat(inp?.value)||0;
+      const nv=cur+1;
+      if(inp){inp.value=nv;handleQtyInput(qinc.dataset.room,qinc.dataset.gkey,qinc.dataset.item,String(nv));}
+      return;
+    }
   });
 
   document.body.addEventListener('change',e=>{
     const cb=e.target;
-    if(cb.dataset.checkbox!==undefined)handleCheck(cb.dataset.room,cb.dataset.gkey,cb.dataset.item,cb.checked);
+    if(cb.tagName==='INPUT'&&cb.dataset.checkbox!==undefined)handleCheck(cb.dataset.room,cb.dataset.gkey,cb.dataset.item,cb.checked);
     if(cb.matches('[data-photo-input]')&&cb.files?.[0]){
       handlePhotoFile(cb.files[0]);
       cb.value='';
