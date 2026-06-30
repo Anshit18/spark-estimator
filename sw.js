@@ -1,4 +1,4 @@
-const CACHE = 'spark-v8';
+const CACHE = 'spark-v12';
 const PRECACHE = [
   './index.html',
   './manifest.json',

@@ -19,7 +19,7 @@
   <style>
     *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
     html{height:100%}
-    body{margin:0;min-height:100%;font-family:'IBM Plex Sans',system-ui,sans-serif;overscroll-behavior:none;background:#0d0f12;color:#f4f5f7}
+    body{margin:0;min-height:100%;font-family:'IBM Plex Sans',system-ui,sans-serif;overscroll-behavior:none;background:#130e08;color:#f4f5f7}
     input[type=text],input[type=number],input[type=file],textarea{font-size:max(16px,1rem)!important}
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -28,46 +28,60 @@
     .pt-safe{padding-top:max(0px,env(safe-area-inset-top))}
     #side-panel{transition:transform .25s cubic-bezier(.4,0,.2,1)}
     .group-body{transition:opacity .15s}
-    /* orange gradient cost bar on group headers */
+    /* accent cost bars — overridden per-group via inline style */
     .cost-bar{position:absolute;bottom:0;left:0;height:3px;background:linear-gradient(90deg,#fb923c,#ea580c);transition:width .45s cubic-bezier(.4,0,.2,1)}
-    .room-cost-bar{position:absolute;bottom:0;left:0;height:3px;background:linear-gradient(90deg,#fb923c,#ea580c);transition:width .45s cubic-bezier(.4,0,.2,1)}
+    .room-cost-bar{position:absolute;bottom:0;left:0;height:3px;transition:width .45s cubic-bezier(.4,0,.2,1)}
     .na-on{background:rgba(70,192,138,0.15);color:#5fcf9a;border:1px solid rgba(70,192,138,0.3)}
-    .na-off{background:rgba(255,255,255,0.06);color:#707783;border:1px solid rgba(255,255,255,0.06)}
-    /* gradient text utility */
-    .grad-orange{background:linear-gradient(180deg,#fdeacf,#f97316);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .na-off{background:rgba(255,200,140,0.065);color:#6b5535;border:1px solid rgba(255,200,140,0.065)}
+    /* gradient text utilities */
+    .grad-orange{background:linear-gradient(170deg,#ffe4c2 0%,#f97316 55%,#c2440a 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .grad-total{background:linear-gradient(160deg,#fff1e0 0%,#ffa94d 40%,#ea580c 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
     .mono{font-family:'IBM Plex Mono',monospace}
+    /* tabular number column alignment */
+    .num-col{font-variant-numeric:tabular-nums;text-align:right;min-width:58px;display:inline-block}
+    /* triage card glows */
+    .triage-glow-1{box-shadow:0 0 0 1px rgba(251,146,60,0.45),0 8px 32px -8px rgba(234,88,12,0.6),inset 0 0 24px rgba(234,88,12,0.06)}
+    .triage-glow-2{box-shadow:0 0 0 1px rgba(251,146,60,0.32),0 6px 24px -8px rgba(234,88,12,0.45)}
+    .triage-glow-3{box-shadow:0 0 0 1px rgba(251,146,60,0.20),0 4px 16px -8px rgba(234,88,12,0.30)}
+    /* elevation surfaces */
+    .surf-0{background:#130e08}
+    .surf-1{background:#1e1710}
+    .surf-2{background:#261e15}
+    .surf-3{background:#2e241a}
+    .surf-4{background:#2e241a}
+    .surf-5{background:#382c1e}
     @media(prefers-reduced-motion:reduce){.cost-bar,.room-cost-bar,.group-body,#progress-bar,#side-panel{transition:none}}
   </style>
 </head>
-<body style="background:#0d0f12">
+<body style="background:#130e08">
 
 <!-- ── Side panel ─────────────────────────────────────────────────────── -->
-<div id="panel-overlay" class="fixed inset-0 z-40 hidden" style="background:rgba(4,5,7,0.6)"></div>
-<div id="side-panel" class="fixed top-0 left-0 h-full w-72 z-50 -translate-x-full flex flex-col" style="background:#16191f;box-shadow:4px 0 40px rgba(0,0,0,0.7),1px 0 0 rgba(255,255,255,0.05)">
-  <div class="px-4 pt-safe flex-shrink-0" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.06)">
+<div id="panel-overlay" class="fixed inset-0 z-40 hidden" style="background:rgba(8,5,2,0.75);backdrop-filter:blur(3px)"></div>
+<div id="side-panel" class="fixed top-0 left-0 h-full w-72 z-50 -translate-x-full flex flex-col" style="background:#261e15;box-shadow:6px 0 48px rgba(0,0,0,0.8),1px 0 0 rgba(255,200,140,0.075)">
+  <div class="px-4 pt-safe flex-shrink-0" style="background:#1e1710;border-bottom:1px solid rgba(255,200,140,0.085)">
     <div class="flex items-center justify-between py-4 mt-1">
       <span class="font-bold text-base" style="color:#e9ecf0">Projects</span>
-      <button id="close-panel" class="p-2 text-xl leading-none active:opacity-60" style="color:#707783;min-width:44px;min-height:44px">✕</button>
+      <button id="close-panel" class="p-2 text-xl leading-none active:opacity-60" style="color:#6b5535;min-width:44px;min-height:44px">✕</button>
     </div>
   </div>
   <div id="panel-list" class="flex-1 overflow-y-auto"></div>
-  <div class="p-4 flex-shrink-0 safe-bot space-y-2" style="border-top:1px solid rgba(255,255,255,0.06)">
-    <button id="compare-btn" class="w-full py-2.5 rounded-xl font-semibold text-sm active:opacity-70 flex items-center justify-center gap-2" style="background:#1c2027;border:1px solid rgba(255,255,255,0.07);color:#aab1bd">
+  <div class="p-4 flex-shrink-0 safe-bot space-y-2" style="border-top:1px solid rgba(255,200,140,0.085);background:#1e1710">
+    <button id="compare-btn" class="w-full py-2.5 rounded-xl font-semibold text-sm active:opacity-70 flex items-center justify-center gap-2" style="background:#2e241a;border:1px solid rgba(255,200,140,0.10);color:#9aa3b0">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
       Compare Projects
     </button>
-    <button id="panel-new" class="w-full py-3 rounded-xl text-white font-semibold text-sm active:opacity-80" style="background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 8px 20px -6px rgba(234,88,12,0.5)">+ New Project</button>
+    <button id="panel-new" class="w-full py-3 rounded-xl text-white font-semibold text-sm active:opacity-80" style="background:linear-gradient(160deg,#f97316,#c2440a);box-shadow:0 8px 22px -6px rgba(234,88,12,0.55)">+ New Project</button>
   </div>
 </div>
 
 <!-- ── Modal ─────────────────────────────────────────────────────────── -->
 <div id="modal" class="fixed inset-0 z-[60] hidden">
-  <div id="modal-bg" class="absolute inset-0" style="background:rgba(4,5,7,0.66);backdrop-filter:blur(2px)"></div>
+  <div id="modal-bg" class="absolute inset-0" style="background:rgba(8,5,2,0.78);backdrop-filter:blur(4px)"></div>
   <div class="absolute inset-0 overflow-y-auto pointer-events-none">
     <div class="flex min-h-full items-center justify-center p-5">
-      <div id="modal-box" class="rounded-2xl w-full max-w-sm pointer-events-auto my-auto" style="background:#232831;box-shadow:0 44px 90px -20px rgba(0,0,0,0.85),0 0 0 1px rgba(255,255,255,0.08),inset 0 1px 0 rgba(255,255,255,0.07)"></div>
+      <div id="modal-box" class="rounded-2xl w-full max-w-sm pointer-events-auto my-auto" style="background:linear-gradient(160deg,#2e241a 0%,#261e15 100%);box-shadow:0 48px 96px -20px rgba(0,0,0,0.9),0 0 0 1px rgba(255,200,140,0.12),inset 0 1px 0 rgba(255,200,140,0.10)"></div>
     </div>
   </div>
 </div>
@@ -237,6 +251,29 @@ const ROOM_COLORS={
   living:  {dot:'#d3a24e',glow:'rgba(211,162,78,0.7)', text:'#e0bd7a',radial:'rgba(211,162,78,0.11)', dashed:'rgba(211,162,78,0.45)'},
 };
 
+// Per-group accent hues — distinct color for each category's bar, subtotal, and highlight
+const GROUP_ACCENT={
+  flooring:          {text:'#e0bd7a',bar:'linear-gradient(90deg,#e8c56a,#c8882a)',glow:'rgba(212,162,78,0.5)'},
+  paint_wall:        {text:'#c4b5fd',bar:'linear-gradient(90deg,#c4b5fd,#7c3aed)',glow:'rgba(167,139,250,0.5)'},
+  doors:             {text:'#93c5fd',bar:'linear-gradient(90deg,#93c5fd,#2563eb)',glow:'rgba(96,165,250,0.5)'},
+  pest_control:      {text:'#6ee7b7',bar:'linear-gradient(90deg,#6ee7b7,#059669)',glow:'rgba(52,211,153,0.5)'},
+  cabinets:          {text:'#fcd34d',bar:'linear-gradient(90deg,#fde68a,#b45309)',glow:'rgba(245,158,11,0.5)'},
+  countertops_tile:  {text:'#5eead4',bar:'linear-gradient(90deg,#5eead4,#0d9488)',glow:'rgba(45,212,191,0.5)'},
+  appliances:        {text:'#7dd3fc',bar:'linear-gradient(90deg,#7dd3fc,#0369a1)',glow:'rgba(56,189,248,0.5)'},
+  vanity:            {text:'#f9a8d4',bar:'linear-gradient(90deg,#f9a8d4,#be185d)',glow:'rgba(244,114,182,0.5)'},
+  tub_shower:        {text:'#a5f3fc',bar:'linear-gradient(90deg,#a5f3fc,#0e7490)',glow:'rgba(103,232,249,0.5)'},
+  tile_ba:           {text:'#a5b4fc',bar:'linear-gradient(90deg,#a5b4fc,#4338ca)',glow:'rgba(129,140,248,0.5)'},
+  hvac:              {text:'#fca5a5',bar:'linear-gradient(90deg,#fca5a5,#b91c1c)',glow:'rgba(248,113,113,0.5)'},
+  electrical:        {text:'#fde68a',bar:'linear-gradient(90deg,#fde68a,#b45309)',glow:'rgba(251,191,36,0.5)'},
+  structural:        {text:'#fdba74',bar:'linear-gradient(90deg,#fdba74,#c2410c)',glow:'rgba(251,146,60,0.5)'},
+  insulation_drywall:{text:'#bbf7d0',bar:'linear-gradient(90deg,#bbf7d0,#15803d)',glow:'rgba(134,239,172,0.5)'},
+  fence:             {text:'#d6d3d1',bar:'linear-gradient(90deg,#d6d3d1,#57534e)',glow:'rgba(168,162,158,0.5)'},
+  siding:            {text:'#fb923c',bar:'linear-gradient(90deg,#fdba74,#c2410c)',glow:'rgba(251,146,60,0.5)'},
+  windows:           {text:'#bae6fd',bar:'linear-gradient(90deg,#bae6fd,#0284c7)',glow:'rgba(125,211,252,0.5)'},
+  garage:            {text:'#e9d5ff',bar:'linear-gradient(90deg,#e9d5ff,#7e22ce)',glow:'rgba(192,132,252,0.5)'},
+  trees:             {text:'#86efac',bar:'linear-gradient(90deg,#86efac,#15803d)',glow:'rgba(74,222,128,0.5)'},
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // STORAGE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -369,6 +406,23 @@ function getSectionCosts(p){
   for(const[type,rt]of Object.entries(ROOM_TYPES))out[type]={label:rt.label,total:0};
   for(const room of p.rooms)
     if(out[room.type])out[room.type].total+=computeRoomSub(room);
+  return out;
+}
+
+// Returns {gKey: {label, total}} summed across all rooms for project p
+function getGroupCosts(p){
+  const out={};
+  for(const room of p.rooms){
+    for(const[gKey,g]of Object.entries(room.groups)){
+      if(!out[gKey])out[gKey]={label:GROUPS[gKey]?.label||gKey,total:0};
+      if(g.noAction)continue;
+      for(const[id,item]of Object.entries(g.items)){
+        if(item.checked&&item.qty&&!g.removedItems.includes(id))
+          out[gKey].total+=effectiveCost(id,p,item)*item.qty;
+      }
+      for(const ci of g.customItems){if(ci.checked&&ci.qty)out[gKey].total+=(ci.cost||0)*ci.qty}
+    }
+  }
   return out;
 }
 
@@ -756,7 +810,7 @@ async function tryDetectBarcode(dataUrl){
   }catch{return null;}
 }
 
-async function handlePhotoFile(file){
+async function handlePhotoFile(file,roomId=null){
   if(!file||!file.type.startsWith('image/'))return;
   const dataUrl=await compressImage(file);
   const targetProj=proj;
@@ -766,7 +820,7 @@ async function handlePhotoFile(file){
   if(used+incoming>LS_BLOCK_AT){showToast('Storage full — remove photos to free space before adding more.',5000);return;}
   if(used+incoming>LS_WARN_AT){showToast(`Storage nearly full (${Math.round((used+incoming)/1024/1024*10)/10} MB used). Consider exporting and clearing photos.`,4000);}
 
-  const photo={id:uid(),dataUrl,name:`Photo ${targetProj.photos.length+1}`,timestamp:Date.now(),serialNumber:null,scanning:true};
+  const photo={id:uid(),dataUrl,name:`Photo ${targetProj.photos.length+1}`,timestamp:Date.now(),serialNumber:null,scanning:true,roomId:roomId||null};
   targetProj.photos.push(photo);
   try{saveProj(targetProj);}
   catch(e){
@@ -775,25 +829,42 @@ async function handlePhotoFile(file){
     }
     throw e;
   }
-  if(proj===targetProj)patchPhotosSection();
+  if(proj===targetProj){
+    patchPhotosSection();
+    if(roomId)patchRoomPhotoStrip(roomId);
+  }
 
   const sn=await tryDetectBarcode(dataUrl);
   const p=targetProj.photos.find(x=>x.id===photo.id);
   if(p){
     p.serialNumber=sn;p.scanning=false;saveProj(targetProj);
-    if(proj===targetProj)patchPhotosSection();
+    if(proj===targetProj){
+      patchPhotosSection();
+      if(roomId)patchRoomPhotoStrip(roomId);
+    }
   }
   if(sn)showToast(`Serial detected: ${sn}`);
 }
 
 function removePhoto(id){
+  const photo=proj.photos.find(p=>p.id===id);
+  const roomId=photo?.roomId||null;
   proj.photos=proj.photos.filter(p=>p.id!==id);
-  saveProj(proj);patchPhotosSection();
+  saveProj(proj);
+  patchPhotosSection();
+  if(roomId)patchRoomPhotoStrip(roomId);
 }
 
 function patchPhotosSection(){
   const el=document.getElementById('photos-section');
   if(el)el.innerHTML=renderPhotosSectionContent();
+}
+
+function patchRoomPhotoStrip(roomId){
+  const el=document.getElementById(`room-photos-${roomId}`);
+  if(!el)return;
+  const room=proj.rooms.find(r=>r.id===roomId);
+  if(room)el.innerHTML=renderRoomPhotoStripContent(room);
 }
 
 function startSNEdit(photoId,triggerEl){
@@ -820,6 +891,8 @@ function renderPhotoThumb(photo){
   const hasSN=photo.serialNumber!=null;
   const snCls=hasSN?'text-green-600':'text-gray-400';
   const snText=photo.scanning?'Scanning…':hasSN?esc(photo.serialNumber):'tap to add SN';
+  const roomLabel=photo.roomId?(proj.rooms.find(r=>r.id===photo.roomId)?.label||null):null;
+  const rc=roomLabel?(ROOM_COLORS[(proj.rooms.find(r=>r.id===photo.roomId)?.type)||'interior']||ROOM_COLORS.interior):null;
   return`<div class="flex flex-col gap-1" id="photo-${photo.id}">
     <div class="relative rounded-xl overflow-hidden bg-gray-100" style="aspect-ratio:1">
       <img src="${photo.dataUrl}" class="w-full h-full object-cover" loading="lazy" draggable="false"/>
@@ -828,6 +901,7 @@ function renderPhotoThumb(photo){
       </div>`:''}
       <button class="absolute top-1 right-1 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center text-white text-xs active:bg-black/80"
         data-remove-photo="${photo.id}">✕</button>
+      ${roomLabel?`<div style="position:absolute;bottom:0;left:0;right:0;padding:3px 6px;background:linear-gradient(0deg,rgba(0,0,0,0.82),transparent);font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${rc.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(roomLabel)}</div>`:''}
     </div>
     <button data-edit-sn="${photo.id}"
       class="text-xs ${snCls} truncate text-left px-1 py-2 leading-snug font-mono w-full active:opacity-60"
@@ -859,7 +933,7 @@ function renderPhotosSectionContent(){
         <input type="file" accept="image/*" capture="environment" class="hidden" data-photo-input/>
       </label>
       <label class="cursor-pointer">
-        <span class="flex items-center justify-center gap-1 px-4 py-3 font-medium text-sm rounded-xl active:opacity-70 h-full" style="background:#1c2027;border:1px solid rgba(255,255,255,0.07);color:#aab1bd">
+        <span class="flex items-center justify-center gap-1 px-4 py-3 font-medium text-sm rounded-xl active:opacity-70 h-full" style="background:#2e241a;border:1px solid rgba(255,200,140,0.085);color:#aab1bd">
           Library
         </span>
         <input type="file" accept="image/*" class="hidden" data-photo-input/>
@@ -954,9 +1028,9 @@ function startPriceEdit(roomId,gKey,itemId,triggerEl){
 // MODAL SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════
 const INPUT_CLS='w-full rounded-xl px-4 py-3 text-sm focus:outline-none';
-const INPUT_STY='background:#1a1e24;border:1px solid rgba(255,255,255,0.09);color:#d8dde4';
+const INPUT_STY='background:#261e15;border:1px solid rgba(255,200,140,0.12);color:#d8dde4';
 const BTN_CANCEL='flex-1 py-3 rounded-xl font-medium text-sm active:opacity-70';
-const BTN_CANCEL_STY='background:#1a1e24;border:1px solid rgba(255,255,255,0.08);color:#aab1bd';
+const BTN_CANCEL_STY='background:#261e15;border:1px solid rgba(255,200,140,0.10);color:#aab1bd';
 const BTN_OK    ='flex-1 py-3 rounded-xl text-white font-semibold text-sm active:opacity-80';
 const BTN_OK_STY='background:linear-gradient(180deg,#f97316,#ea580c)';
 const BTN_DANGER='flex-1 py-3 rounded-xl text-white font-semibold text-sm active:opacity-80';
@@ -1018,35 +1092,35 @@ function renderModalContent(st){
     const gp=getGlobalPrices();
     const customCount=Object.keys(gp).length;
     const syncBadge=customCount>0
-      ?`<span class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background:rgba(251,146,60,0.15);border:1px solid rgba(251,146,60,0.3);color:#fb923c">${customCount} overridden</span>`
-      :`<span class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background:rgba(70,192,138,0.13);border:1px solid rgba(70,192,138,0.3);color:#5fcf9a">In sync</span>`;
+      ?`<span class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background:rgba(251,146,60,0.13);border:1px solid rgba(251,146,60,0.28);color:#fb923c">${customCount} overridden</span>`
+      :`<span class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background:rgba(70,192,138,0.11);border:1px solid rgba(70,192,138,0.28);color:#52d69a">In sync</span>`;
     return`<div class="p-5">
-      <div class="flex items-center justify-between mb-5" style="border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:14px">
+      <div class="flex items-center justify-between mb-5" style="border-bottom:1px solid rgba(255,200,140,0.085);padding-bottom:14px">
         <h3 class="font-bold text-lg" style="color:#e9ecf0">Settings</h3>
-        <button data-modal-cancel class="flex items-center justify-center active:opacity-50" style="width:38px;height:38px;border-radius:11px;background:#2c323c;border:1px solid rgba(255,255,255,0.07);color:#aab1bd;font-size:16px">✕</button>
+        <button data-modal-cancel class="flex items-center justify-center active:opacity-50" style="width:38px;height:38px;border-radius:11px;background:#2e241a;border:1px solid rgba(255,200,140,0.10);color:#9aa3b0;font-size:16px">✕</button>
       </div>
-      <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:#7c828e">Global Price Schedule</p>
-      <div class="rounded-xl p-3.5 flex items-center gap-3 mb-2" style="background:#1a1e24;border:1px solid rgba(255,255,255,0.06)">
-        <div class="flex items-center justify-center flex-shrink-0" style="width:38px;height:38px;border-radius:10px;background:#262b33;font-size:18px">📋</div>
+      <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="letter-spacing:0.14em;color:#6b5535">Global Price Schedule</p>
+      <div class="rounded-xl p-3.5 flex items-center gap-3 mb-2" style="background:#261e15;border:1px solid rgba(255,200,140,0.085)">
+        <div class="flex items-center justify-center flex-shrink-0" style="width:38px;height:38px;border-radius:10px;background:#1e242e;font-size:18px">📋</div>
         <div class="flex-1 min-w-0">
           <div class="text-sm font-medium" style="color:#cfd4db">Price List</div>
-          <div class="text-xs mono" style="color:#707783">repair-items.csv</div>
+          <div class="text-xs mono" style="color:#6b5535">repair-items.csv</div>
         </div>
         ${syncBadge}
       </div>
       <div class="space-y-2 mt-3">
         <label class="block cursor-pointer">
-          <span class="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-white font-semibold text-sm active:opacity-80" style="background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 8px 20px -6px rgba(234,88,12,0.45)">
+          <span class="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-white font-semibold text-sm active:opacity-80" style="background:linear-gradient(160deg,#f97316,#c2440a);box-shadow:0 10px 24px -6px rgba(194,68,10,0.55),inset 0 1px 0 rgba(255,255,255,0.10)">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
             Upload New Prices (CSV)
           </span>
           <input type="file" accept=".csv,.CSV" id="price-csv-input" class="hidden"/>
         </label>
-        <button id="dl-prices-btn" class="w-full py-3 rounded-xl text-sm font-medium active:opacity-70 flex items-center justify-center gap-2" style="background:#1a1e24;border:1px solid rgba(255,255,255,0.07);color:#aab1bd">
+        <button id="dl-prices-btn" class="w-full py-3 rounded-xl text-sm font-medium active:opacity-70 flex items-center justify-center gap-2" style="background:#261e15;border:1px solid rgba(255,200,140,0.085);color:#9aa3b0">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           Download Current Price Template
         </button>
-        ${customCount>0?`<button id="reset-prices-btn" class="w-full py-3 rounded-xl text-sm font-semibold active:opacity-70" style="background:rgba(185,28,28,0.15);border:1px solid rgba(185,28,28,0.3);color:#f87171">Reset to Default Prices</button>`:''}
+        ${customCount>0?`<button id="reset-prices-btn" class="w-full py-3 rounded-xl text-sm font-semibold active:opacity-70" style="background:rgba(185,28,28,0.13);border:1px solid rgba(185,28,28,0.28);color:#f87171">Reset to Default Prices</button>`:''}
       </div>
     </div>`;
   }
@@ -1103,31 +1177,31 @@ function renderItem(room,gKey,itemId){
   const k=`${room.id}-${gKey}-${itemId}`;
   const chk=item.checked;
   const checkEl=chk
-    ?`<div class="flex-shrink-0 flex items-center justify-center" style="width:22px;height:22px;border-radius:7px;background:#46c08a;color:#072014;font-size:13px;font-weight:700">✓</div>`
-    :`<div class="flex-shrink-0" style="width:22px;height:22px;border-radius:7px;border:1.5px solid #3a414c"></div>`;
-  return`<div id="irow-${k}" class="flex items-center gap-3 px-3 py-2.5 ${chk?'':'opacity-50'}" style="border-top:1px solid rgba(255,255,255,0.03)">
+    ?`<div class="flex-shrink-0 flex items-center justify-center" style="width:22px;height:22px;border-radius:7px;background:linear-gradient(160deg,#52d69a,#34a870);box-shadow:0 0 8px rgba(70,192,138,0.4);color:#051a0d;font-size:13px;font-weight:700">✓</div>`
+    :`<div class="flex-shrink-0" style="width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(255,255,255,0.12)"></div>`;
+  return`<div id="irow-${k}" class="flex items-center gap-3 px-3 py-2.5 ${chk?'':'opacity-45'}" style="border-top:1px solid rgba(255,255,255,0.03)">
     <div class="cursor-pointer" data-checkbox data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}" style="min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-start">
       ${checkEl}
     </div>
     <div class="flex-1 min-w-0">
-      <div class="font-medium leading-snug" style="font-size:14px;color:${chk?'#d8dde4':'#aab1bd'}">${esc(def.name)}</div>
+      <div class="font-medium leading-snug" style="font-size:14px;color:${chk?'#d8dde4':'#8a919e'}">${esc(def.name)}</div>
       ${item.costOverride!=null
-        ?`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span class="mono" style="color:#5a626d">/ ${esc(def.unit)}</span></button>`
-        :`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5 mono" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span style="color:#5a626d">${fmtCost(cost)} / ${esc(def.unit)}</span></button>`}
+        ?`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span style="color:#fb923c;font-weight:500">${fmtCost(cost)}</span><span style="color:#f97316;font-size:10px;margin-left:2px">✎</span> <span class="mono" style="color:#4a5260">/ ${esc(def.unit)}</span></button>`
+        :`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5 mono" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span style="color:#4a5260">${fmtCost(cost)} / ${esc(def.unit)}</span></button>`}
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
-      <div class="flex items-center" style="background:#0d1014;border:1px solid rgba(255,255,255,0.07);border-radius:9px;height:34px">
-        <button class="flex items-center justify-center" style="width:30px;color:#9aa1ad;font-size:16px"
+      <div class="flex items-center" style="background:#130e08;border:1px solid rgba(255,200,140,0.10);border-radius:9px;height:34px">
+        <button class="flex items-center justify-center" style="width:30px;color:#7a8290;font-size:16px"
           data-qty-dec data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}">−</button>
         <input id="qty-${k}" type="number" min="0" step="0.5" inputmode="decimal"
           class="mono text-right focus:outline-none bg-transparent"
           style="width:46px;font-size:14px;color:#e8ebef;font-variant-numeric:tabular-nums;border:none;padding:0 2px"
           value="${item.qty||''}" placeholder="0"
           data-qty data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"/>
-        <button class="flex items-center justify-center" style="width:30px;color:#9aa1ad;font-size:16px"
+        <button class="flex items-center justify-center" style="width:30px;color:#7a8290;font-size:16px"
           data-qty-inc data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}">+</button>
       </div>
-      <div id="lt-${k}" class="mono tabular-nums text-right grad-orange" style="font-size:13.5px;min-width:54px">${lt>0?fmt(lt):''}</div>
+      <div id="lt-${k}" class="mono tabular-nums num-col grad-orange" style="font-size:13.5px">${lt>0?fmt(lt):''}</div>
     </div>
   </div>`;
 }
@@ -1137,25 +1211,25 @@ function renderCustomItem(room,gKey,ci){
   const lt=ci.checked&&ci.qty?(ci.cost||0)*ci.qty:0;
   const chk=ci.checked;
   const checkEl=chk
-    ?`<div class="flex-shrink-0 flex items-center justify-center" style="width:22px;height:22px;border-radius:7px;background:#46c08a;color:#072014;font-size:13px;font-weight:700">✓</div>`
-    :`<div class="flex-shrink-0" style="width:22px;height:22px;border-radius:7px;border:1.5px solid #3a414c"></div>`;
-  return`<div id="irow-${k}" class="flex items-center gap-3 px-3 py-2.5 ${chk?'':'opacity-50'}" style="border-top:1px solid rgba(255,255,255,0.03);background:rgba(251,146,60,0.04)">
+    ?`<div class="flex-shrink-0 flex items-center justify-center" style="width:22px;height:22px;border-radius:7px;background:linear-gradient(160deg,#52d69a,#34a870);box-shadow:0 0 8px rgba(70,192,138,0.4);color:#051a0d;font-size:13px;font-weight:700">✓</div>`
+    :`<div class="flex-shrink-0" style="width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(255,255,255,0.12)"></div>`;
+  return`<div id="irow-${k}" class="flex items-center gap-3 px-3 py-2.5 ${chk?'':'opacity-45'}" style="border-top:1px solid rgba(255,255,255,0.03);background:rgba(249,115,22,0.04)">
     <div class="cursor-pointer" data-ci-check data-room="${room.id}" data-gkey="${gKey}" data-ci="${ci.id}" style="min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-start">
       ${checkEl}
     </div>
     <div class="flex-1 min-w-0">
-      <div class="font-medium leading-snug" style="font-size:14px;color:${chk?'#d8dde4':'#aab1bd'}">${esc(ci.name)}</div>
-      <div class="mono" style="font-size:11px;color:#5a626d">${fmtCost(ci.cost||0)} / ${esc(ci.unit||'ea.')}</div>
+      <div class="font-medium leading-snug" style="font-size:14px;color:${chk?'#d8dde4':'#8a919e'}">${esc(ci.name)}</div>
+      <div class="mono" style="font-size:11px;color:#4a5260">${fmtCost(ci.cost||0)} / ${esc(ci.unit||'ea.')}</div>
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
-      <div class="flex items-center" style="background:#0d1014;border:1px solid rgba(255,255,255,0.07);border-radius:9px;height:34px">
+      <div class="flex items-center" style="background:#130e08;border:1px solid rgba(255,200,140,0.10);border-radius:9px;height:34px">
         <input type="number" min="0" step="0.5" inputmode="decimal"
           class="mono text-right focus:outline-none bg-transparent"
           style="width:58px;font-size:14px;color:#e8ebef;font-variant-numeric:tabular-nums;border:none;padding:0 8px"
           value="${ci.qty||''}" placeholder="0"
           data-ci-qty data-room="${room.id}" data-gkey="${gKey}" data-ci="${ci.id}"/>
       </div>
-      <div class="mono tabular-nums text-right grad-orange" style="font-size:13.5px;min-width:54px">${lt>0?fmt(lt):''}</div>
+      <div class="mono tabular-nums num-col grad-orange" style="font-size:13.5px">${lt>0?fmt(lt):''}</div>
     </div>
   </div>`;
 }
@@ -1167,33 +1241,66 @@ function renderGroup(room,gKey,projTotal=0){
   const sub=computeGroupSub(room,gKey);
   const isCollapsed=collapsed.has(`${room.id}|${gKey}`);
   const barPct=projTotal>0?Math.min(Math.round(sub/projTotal*100),100):0;
+  const ac=GROUP_ACCENT[gKey]||{text:'#fb923c',bar:'linear-gradient(90deg,#fb923c,#ea580c)',glow:'rgba(234,88,12,0.45)'};
+  const subGrad=sub>0?`background:linear-gradient(170deg,${ac.text},${ac.text}99);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent`:'color:#5a626d';
   return`<div style="padding:6px 12px 0">
     <div class="cursor-pointer select-none active:opacity-80 relative overflow-hidden"
-      style="background:#12151a;border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:11px 13px;margin-bottom:${isCollapsed?'6px':'0'};border-bottom-left-radius:${isCollapsed?'12px':'4px'};border-bottom-right-radius:${isCollapsed?'12px':'4px'}"
+      style="background:linear-gradient(160deg,#14181f 0%,#11141a 100%);border:1px solid rgba(255,255,255,0.055);border-radius:12px;padding:11px 13px;margin-bottom:${isCollapsed?'6px':'0'};border-bottom-left-radius:${isCollapsed?'12px':'4px'};border-bottom-right-radius:${isCollapsed?'12px':'4px'}"
       data-collapse data-room="${room.id}" data-gkey="${gKey}">
       <div class="flex items-center gap-2">
         <svg id="chev-${room.id}-${gKey}" class="w-3.5 h-3.5 flex-shrink-0 transition-transform ${isCollapsed?'-rotate-90':''}"
-          style="color:#5a626d"
+          style="color:#4a5260"
           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
         </svg>
-        <span class="flex-1 text-sm font-semibold" style="color:#d8dde4">${esc(def.label)}</span>
+        <span class="flex-1 text-sm font-semibold" style="color:#cdd3dc">${esc(def.label)}</span>
         <span id="nab-${room.id}-${gKey}"
           class="text-xs px-2.5 py-1 rounded-full font-medium cursor-pointer ${g.noAction?'na-on':'na-off'}"
           data-noaction data-room="${room.id}" data-gkey="${gKey}">
           ${g.noAction?'✓ No Action':'No Action'}
         </span>
-        <span id="gsub-${room.id}-${gKey}" class="mono font-bold tabular-nums grad-orange" style="font-size:13.5px;min-width:54px;text-align:right">${sub>0?fmt(sub):''}</span>
+        <span id="gsub-${room.id}-${gKey}" class="mono font-bold tabular-nums num-col" style="font-size:13.5px;${subGrad}">${sub>0?fmt(sub):''}</span>
       </div>
-      ${sub>0?`<div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:10px">
-        <div style="height:100%;width:${barPct}%;border-radius:3px;background:linear-gradient(90deg,#fb923c,#ea580c);box-shadow:0 0 8px rgba(234,88,12,0.5)"></div>
+      ${sub>0?`<div style="height:4px;border-radius:3px;background:rgba(255,200,140,0.065);overflow:hidden;margin-top:10px">
+        <div style="height:100%;width:${barPct}%;border-radius:3px;background:${ac.bar};box-shadow:0 0 8px ${ac.glow}"></div>
       </div>`:''}
       <div id="gbar-${room.id}-${gKey}" class="cost-bar" style="display:none;width:${barPct}%"></div>
     </div>
-    <div id="gb-${room.id}-${gKey}" class="group-body ${isCollapsed?'hidden':''}" style="${g.noAction?'opacity:0.35;':''}background:#12151a;border:1px solid rgba(255,255,255,0.04);border-top:none;border-bottom-left-radius:12px;border-bottom-right-radius:12px;padding-bottom:4px;margin-bottom:6px">
+    <div id="gb-${room.id}-${gKey}" class="group-body ${isCollapsed?'hidden':''}" style="${g.noAction?'opacity:0.35;':''}background:linear-gradient(160deg,#261e15 0%,#1c1510 100%);border:1px solid rgba(255,200,140,0.055);border-top:none;border-bottom-left-radius:12px;border-bottom-right-radius:12px;padding-bottom:4px;margin-bottom:6px">
       ${def.items.filter(id=>!g.removedItems.includes(id)).map(id=>renderItem(room,gKey,id)).join('')}
       ${g.customItems.map(ci=>renderCustomItem(room,gKey,ci)).join('')}
     </div>
+  </div>`;
+}
+
+function renderRoomPhotoStripContent(room){
+  const photos=proj.photos.filter(p=>p.roomId===room.id);
+  const rc=ROOM_COLORS[room.type]||ROOM_COLORS.interior;
+  const camSvg=`<svg style="width:18px;height:18px;color:#9aa3b0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`;
+  const libSvg=`<svg style="width:14px;height:14px;color:#707783" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`;
+  const thumbs=photos.map(p=>`
+    <div style="flex-shrink:0;position:relative;width:62px;height:62px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,200,140,0.085)">
+      <img src="${p.dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" draggable="false"/>
+      ${p.scanning?`<div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:8px;color:white;font-weight:700;letter-spacing:0.08em">SCAN…</div>`:''}
+      <button data-remove-photo="${p.id}" style="position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.72);color:white;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1;border:none">✕</button>
+      ${p.serialNumber?`<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.78);padding:2px 4px;font-size:8px;color:#52d69a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:monospace">${esc(p.serialNumber)}</div>`:''}
+    </div>`).join('');
+  const countBadge=photos.length?`<span style="font-size:10px;font-weight:600;color:${rc.text};background:${rc.text}22;border-radius:6px;padding:1px 6px;margin-left:4px">${photos.length}</span>`:'';
+  return`<div style="display:flex;align-items:center;gap:6px;padding:8px 14px 4px">
+    <span style="font-size:9.5px;font-weight:600;letter-spacing:0.13em;color:#4a5260;text-transform:uppercase">Photos</span>
+    ${countBadge}
+    <div style="flex:1"></div>
+    <label style="cursor:pointer;flex-shrink:0">
+      <span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#261e15;border:1px solid rgba(255,200,140,0.10);active:opacity:60">${libSvg}</span>
+      <input type="file" accept="image/*" class="hidden" data-room-photo-input="${room.id}"/>
+    </label>
+    <label style="cursor:pointer;flex-shrink:0">
+      <span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#261e15;border:1px solid rgba(255,200,140,0.10)">${camSvg}</span>
+      <input type="file" accept="image/*" capture="environment" class="hidden" data-room-photo-input="${room.id}"/>
+    </label>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;padding:4px 14px 12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch">
+    ${thumbs||`<span style="font-size:11px;color:#3a404a;font-style:italic;padding:4px 0">Tap 📷 to add room photos</span>`}
   </div>`;
 }
 
@@ -1202,24 +1309,28 @@ function renderRoom(room,projTotal=0){
   const rc=ROOM_COLORS[room.type]||ROOM_COLORS.interior;
   const sub=computeRoomSub(room);
   const roomBarPct=projTotal>0?Math.min(Math.round(sub/projTotal*100),100):0;
-  const pencilSvg=`<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="color:rgba(255,255,255,0.25)">
+  const pencilSvg=`<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="color:rgba(255,255,255,0.2)">
     <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
   </svg>`;
   const closeSvg=`<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
   </svg>`;
+  const subGrad=sub>0?`background:linear-gradient(170deg,${rc.text},${rc.dot}cc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent`:'';
   return`<section>
-    <div class="sticky z-20 flex items-center gap-2.5 px-4 py-3 relative overflow-hidden" style="top:90px;background:radial-gradient(130% 90% at 0% 0%,${rc.radial},rgba(0,0,0,0) 55%),#15181d;border-bottom:1px solid rgba(255,255,255,0.05)">
-      <span class="flex-shrink-0" style="width:9px;height:9px;border-radius:50%;background:${rc.dot};box-shadow:0 0 9px ${rc.glow}"></span>
+    <div class="sticky z-20 flex items-center gap-2.5 px-4 py-3 relative overflow-hidden" style="top:90px;background:radial-gradient(130% 90% at 0% 0%,${rc.radial},rgba(0,0,0,0) 55%),linear-gradient(160deg,#261e15 0%,#1c1510 100%);border-bottom:1px solid rgba(255,200,140,0.075);box-shadow:0 2px 12px rgba(0,0,0,0.3)">
+      <span class="flex-shrink-0" style="width:10px;height:10px;border-radius:50%;background:${rc.dot};box-shadow:0 0 12px ${rc.glow},0 0 4px ${rc.dot}"></span>
       <button class="flex items-center gap-1.5 min-w-0 flex-1 active:opacity-70 text-left"
         data-rename-room="${room.id}" title="Tap to rename">
-        <span class="font-bold uppercase truncate" style="font-size:10.5px;letter-spacing:0.14em;color:${rc.text}">${esc(room.label)}</span>
+        <span class="font-bold uppercase truncate" style="font-size:10.5px;letter-spacing:0.16em;color:${rc.text}">${esc(room.label)}</span>
         <span class="flex-shrink-0">${pencilSvg}</span>
       </button>
-      <span id="rsub-${room.id}" class="mono font-bold tabular-nums flex-shrink-0 grad-orange" style="font-size:16px;font-weight:600">${sub>0?fmt(sub):''}</span>
-      ${!rt.singleton?`<button class="flex items-center justify-center flex-shrink-0 active:opacity-60" style="width:36px;height:36px;border-radius:10px;color:#8a6f6f"
+      <span id="rsub-${room.id}" class="mono font-bold tabular-nums flex-shrink-0 num-col" style="font-size:16px;${subGrad}">${sub>0?fmt(sub):''}</span>
+      ${!rt.singleton?`<button class="flex items-center justify-center flex-shrink-0 active:opacity-60" style="width:36px;height:36px;border-radius:10px;color:#6a5858"
         data-remove-room="${room.id}" title="Remove ${esc(room.label)}">${closeSvg}</button>`:''}
-      <div id="rbar-${room.id}" class="room-cost-bar" style="width:${roomBarPct}%"></div>
+      <div id="rbar-${room.id}" class="room-cost-bar" style="width:${roomBarPct}%;background:linear-gradient(90deg,${rc.dot},${rc.dot}66)"></div>
+    </div>
+    <div id="room-photos-${room.id}" style="border-bottom:1px solid rgba(255,255,255,0.04)">
+      ${renderRoomPhotoStripContent(room)}
     </div>
     <div>
       ${rt.groups.map(gKey=>renderGroup(room,gKey,projTotal)).join('')}
@@ -1235,7 +1346,7 @@ function renderAddRoomSection(){
       ${nonSingleton.map(([type,rt])=>{
         const rc=ROOM_COLORS[type]||ROOM_COLORS.kitchen;
         return`<button class="px-3.5 py-2 rounded-xl text-sm font-semibold active:opacity-60 active:scale-95 transition-transform flex items-center gap-2"
-          style="background:#1c2027;border:1px solid ${rc.dashed};color:${rc.text}"
+          style="background:#2e241a;border:1px solid ${rc.dashed};color:${rc.text}"
           data-add-room="${type}">
           <span style="width:7px;height:7px;border-radius:50%;background:${rc.dot};display:inline-block;flex-shrink:0"></span>
           + ${rt.label}
@@ -1255,25 +1366,25 @@ function renderTriageView(){
   const restTotal=restItems.reduce((s,i)=>s+i.lt,0);
   const maxCost=items[0]?.lt||1;
   const paretoPct=total>0?Math.round(paretoItems.reduce((s,i)=>s+i.lt,0)/total*100):0;
-  const backBtn=`<button data-action="back-to-project" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#1c2027;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:#aab1bd">
+  const backBtn=`<button data-action="back-to-project" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#2e241a;border:1px solid rgba(255,200,140,0.075);display:flex;align-items:center;justify-content:center;color:#aab1bd">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
     </svg></button>`;
-  const header=`<div class="sticky top-0 z-30 pt-safe" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.05)">
+  const header=`<div class="sticky top-0 z-30 pt-safe" style="background:linear-gradient(180deg,#1e1710,#1b1410);border-bottom:1px solid rgba(255,200,140,0.075)">
     <div class="flex items-center px-4 gap-3" style="height:58px">
       ${backBtn}
       <div class="flex-1 min-w-0 px-1">
         <div class="font-semibold" style="font-size:15px;color:#e9ecf0">Cost Triage</div>
-        <div class="truncate" style="font-size:12px;color:#707783">${esc(proj.name)}</div>
+        <div class="truncate" style="font-size:12px;color:#6b5535">${esc(proj.name)}</div>
       </div>
       <div class="text-right flex-shrink-0">
-        <div style="font-size:10px;letter-spacing:0.1em;color:#707783;font-weight:600">TOTAL</div>
-        <div class="mono font-bold tabular-nums grad-orange" style="font-size:15px">${fmt(total)}</div>
+        <div style="font-size:10px;letter-spacing:0.12em;color:#6b5535;font-weight:600">TOTAL</div>
+        <div class="mono font-bold tabular-nums grad-total" style="font-size:16px">${fmt(total)}</div>
       </div>
     </div>
   </div>`;
   if(!items.length) return header+`<div class="flex flex-col items-center justify-center py-20 px-8 text-center">
-    <div class="flex items-center justify-center mb-4" style="width:56px;height:56px;border-radius:16px;background:#1c2027;border:1px solid rgba(255,255,255,0.06)">
+    <div class="flex items-center justify-center mb-4" style="width:56px;height:56px;border-radius:16px;background:#2e241a;border:1px solid rgba(255,200,140,0.075)">
       <svg class="w-7 h-7" style="color:#5a626d" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
@@ -1284,32 +1395,44 @@ function renderTriageView(){
 
   // Pareto callout card
   const pareto=`<div class="px-4 pt-4">
-    <div style="background:radial-gradient(120% 130% at 100% 0%,rgba(234,88,12,0.16),rgba(234,88,12,0) 60%),#1c2027;border:1px solid rgba(249,115,22,0.22);border-radius:16px;padding:15px 16px;box-shadow:0 8px 32px -12px rgba(234,88,12,0.35)">
-      <div style="font-size:11px;letter-spacing:0.1em;color:#f7a04a;font-weight:600">PARETO CUTOFF</div>
+    <div style="background:radial-gradient(120% 130% at 100% 0%,rgba(234,88,12,0.18),rgba(234,88,12,0) 60%),linear-gradient(160deg,#2e241a 0%,#2e241a 100%);border:1px solid rgba(249,115,22,0.28);border-radius:16px;padding:15px 16px;box-shadow:0 12px 40px -12px rgba(194,68,10,0.4),inset 0 1px 0 rgba(255,200,140,0.075)">
+      <div style="font-size:10px;letter-spacing:0.14em;color:#f7a04a;font-weight:600">PARETO CUTOFF</div>
       <div class="flex items-end justify-between mt-1">
         <div>
-          <div class="mono grad-orange" style="font-size:32px;font-weight:600;line-height:1">${paretoPct}%</div>
-          <div style="font-size:13px;color:#aab1bd;padding-bottom:3px">${paretoItems.length} item${paretoItems.length!==1?'s':''} drive ${paretoPct}% of cost</div>
+          <div class="mono grad-total" style="font-size:34px;font-weight:600;line-height:1">${paretoPct}%</div>
+          <div style="font-size:13px;color:#9aa3b0;padding-bottom:3px">${paretoItems.length} item${paretoItems.length!==1?'s':''} drive ${paretoPct}% of cost</div>
         </div>
       </div>
-      <div style="margin-top:12px;height:7px;border-radius:5px;background:rgba(255,255,255,0.07);overflow:hidden;position:relative">
-        <div style="height:100%;width:${paretoPct}%;border-radius:5px;background:linear-gradient(90deg,#fb923c,#ea580c)"></div>
-        <div style="position:absolute;top:-3px;bottom:-3px;left:80%;width:2px;background:rgba(255,255,255,0.55)"></div>
+      <div style="margin-top:12px;height:7px;border-radius:5px;background:rgba(255,200,140,0.075);overflow:hidden;position:relative">
+        <div style="height:100%;width:${paretoPct}%;border-radius:5px;background:linear-gradient(90deg,#fb923c,#c2440a);box-shadow:0 0 10px rgba(234,88,12,0.6)"></div>
+        <div style="position:absolute;top:-3px;bottom:-3px;left:80%;width:2px;background:rgba(255,255,255,0.5)"></div>
       </div>
-      <div style="font-size:10px;letter-spacing:0.1em;color:#707783;margin-top:5px">80% threshold marker</div>
+      <div style="font-size:10px;letter-spacing:0.12em;color:#6b5535;margin-top:5px">80% threshold marker</div>
     </div>
   </div>`;
 
-  // Triage item cards — intensity decreases for each item
-  const triageIntensity=[0.16,0.12,0.10,0.08,0.06,0.05,0.04];
-  const triageBorder=[0.28,0.24,0.20,0.16,0.12,0.10,0.08];
+  // Triage item cards — warm glow scales with cost rank
+  const triageGlowCls=['triage-glow-1','triage-glow-1','triage-glow-2','triage-glow-2','triage-glow-3','triage-glow-3',''];
+  const triBg=[
+    'radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,0.20),rgba(0,0,0,0) 50%),linear-gradient(160deg,#1f2430 0%,#18202a 100%)',
+    'radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,0.15),rgba(0,0,0,0) 50%),linear-gradient(160deg,#1b2129 0%,#161d24 100%)',
+    'radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,0.11),rgba(0,0,0,0) 50%),linear-gradient(160deg,#181f27 0%,#131a21 100%)',
+    'linear-gradient(160deg,#161d24 0%,#121820 100%)',
+    'linear-gradient(160deg,#141b22 0%,#10161c 100%)',
+    'linear-gradient(160deg,#13191f 0%,#0f151b 100%)',
+    'linear-gradient(160deg,#11171d 0%,#0e1319 100%)',
+  ];
+  const triBdr=[
+    'rgba(249,115,22,0.40)','rgba(249,115,22,0.30)','rgba(249,115,22,0.22)',
+    'rgba(249,115,22,0.15)','rgba(249,115,22,0.10)','rgba(249,115,22,0.07)','rgba(249,115,22,0.05)',
+  ];
   const itemRows=paretoItems.map((item,i)=>{
     const barPct=Math.round(item.lt/maxCost*100);
     const sharePct=Math.round(item.lt/total*100);
-    const intensity=triageIntensity[Math.min(i,triageIntensity.length-1)];
-    const bdr=triageBorder[Math.min(i,triageBorder.length-1)];
+    const bgIdx=Math.min(i,triBg.length-1);
+    const glowCls=triageGlowCls[Math.min(i,triageGlowCls.length-1)];
     return`<div class="px-4 mt-3">
-      <div style="background:radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,${intensity}),rgba(234,88,12,0) 55%),#1d2128;border:1px solid rgba(249,115,22,${bdr});border-radius:14px;padding:12px 14px;box-shadow:0 6px 20px -10px rgba(234,88,12,${intensity*2})">
+      <div class="${glowCls}" style="background:${triBg[bgIdx]};border:1px solid ${triBdr[bgIdx]};border-radius:14px;padding:12px 14px">
         <div class="flex items-start gap-3">
           <span class="mono font-bold flex-shrink-0" style="font-size:15px;color:#f7a04a;width:22px">${i+1}</span>
           <div class="flex-1 min-w-0">
@@ -1317,17 +1440,17 @@ function renderTriageView(){
               <div class="min-w-0 flex-1">
                 <div class="font-semibold leading-snug" style="font-size:14px;color:#d8dde4">${esc(item.name)}</div>
                 <div class="flex items-center gap-1.5 mt-1">
-                  <span class="text-xs px-2 py-0.5 rounded" style="background:rgba(124,140,248,0.13);border:1px solid rgba(124,140,248,0.25);color:#96a2fa">${esc(item.room)}</span>
-                  <span class="text-xs" style="color:#5a626d">${esc(item.group)}</span>
+                  <span class="text-xs px-2 py-0.5 rounded" style="background:rgba(124,140,248,0.12);border:1px solid rgba(124,140,248,0.22);color:#96a2fa">${esc(item.room)}</span>
+                  <span class="text-xs" style="color:#4a5260">${esc(item.group)}</span>
                 </div>
               </div>
               <div class="text-right flex-shrink-0">
-                <div class="mono font-bold tabular-nums grad-orange" style="font-size:15px">${fmt(item.lt)}</div>
-                <div style="font-size:10px;color:#707783">${sharePct}%</div>
+                <div class="mono font-bold tabular-nums grad-total num-col" style="font-size:15px">${fmt(item.lt)}</div>
+                <div style="font-size:10px;color:#6b5535">${sharePct}%</div>
               </div>
             </div>
-            <div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:10px">
-              <div style="height:100%;width:${barPct}%;border-radius:3px;background:linear-gradient(90deg,#fb923c,#ea580c);box-shadow:0 0 8px rgba(234,88,12,${0.4+i*0.05})"></div>
+            <div style="height:4px;border-radius:3px;background:rgba(255,200,140,0.065);overflow:hidden;margin-top:10px">
+              <div style="height:100%;width:${barPct}%;border-radius:3px;background:linear-gradient(90deg,#fb923c,#c2440a);box-shadow:0 0 10px rgba(234,88,12,${Math.max(0.2,0.55-i*0.07)})"></div>
             </div>
           </div>
         </div>
@@ -1336,16 +1459,16 @@ function renderTriageView(){
   }).join('');
 
   const divider=restItems.length?`<div class="flex items-center gap-3 px-4 py-4 mt-3">
-    <div style="flex:1;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.22) 0 5px,transparent 5px 10px)"></div>
-    <span style="font-size:10px;letter-spacing:0.1em;color:#868e9b;font-weight:600;white-space:nowrap">BELOW 80% THRESHOLD</span>
-    <div style="flex:1;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.22) 0 5px,transparent 5px 10px)"></div>
+    <div style="flex:1;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.15) 0 5px,transparent 5px 10px)"></div>
+    <span style="font-size:10px;letter-spacing:0.12em;color:#6b5535;font-weight:600;white-space:nowrap">BELOW 80% THRESHOLD</span>
+    <div style="flex:1;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.15) 0 5px,transparent 5px 10px)"></div>
   </div>`:'';
 
   const restSection=restItems.length?restItems.slice(0,6).map(item=>`<div class="px-4 mb-2">
-    <div class="flex items-center gap-3" style="background:#131619;border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:11px 14px;opacity:0.72">
-      <span class="mono flex-shrink-0" style="font-size:13px;color:#5a626d;width:22px">${restItems.indexOf(item)+paretoItems.length+1}</span>
-      <span class="flex-1 min-w-0 truncate" style="font-size:13.5px;color:#aab1bd">${esc(item.name)}</span>
-      <span class="mono" style="font-size:13.5px;color:#9aa1ad">${fmt(item.lt)}</span>
+    <div class="flex items-center gap-3" style="background:#0f1318;border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:11px 14px;opacity:0.65">
+      <span class="mono flex-shrink-0" style="font-size:13px;color:#4a5260;width:22px">${restItems.indexOf(item)+paretoItems.length+1}</span>
+      <span class="flex-1 min-w-0 truncate" style="font-size:13.5px;color:#9aa3b0">${esc(item.name)}</span>
+      <span class="mono num-col" style="font-size:13.5px;color:#7a8290">${fmt(item.lt)}</span>
     </div>
   </div>`).join(''):'';
 
@@ -1358,24 +1481,31 @@ function renderTriageView(){
 function renderComparePicker(slot){
   const list=loadList();
   const takenId=slot==='b'?cmpState.a:cmpState.b;
-  const accentDot=slot==='a'?'#f97316':'#6f8bb0';
-  return`<div class="sticky top-0 z-30 pt-safe" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.05)">
+  const isA=slot==='a';
+  const accentColor=isA?'#fb923c':'#7db0ff';
+  const stepLabel=isA?'Step 1 of 2':'Step 2 of 2';
+  return`<div class="sticky top-0 z-30 pt-safe" style="background:linear-gradient(180deg,#1e1710,#1b1410);border-bottom:1px solid rgba(255,200,140,0.075);box-shadow:0 4px 24px rgba(0,0,0,0.4)">
     <div class="flex items-center px-4 gap-3" style="height:58px">
-      <button data-action="compare-close" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#1c2027;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:#aab1bd">
+      <button data-action="compare-close" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#2e241a;border:1px solid rgba(255,200,140,0.075);display:flex;align-items:center;justify-content:center;color:#aab1bd">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
       <div class="flex-1 px-1">
         <div class="font-semibold" style="font-size:15px;color:#e9ecf0">Compare Projects</div>
-        <div style="font-size:12px;color:#707783">Pick Project ${slot.toUpperCase()}</div>
+        <div style="font-size:12px;color:#6b5535">${stepLabel} — pick Project ${slot.toUpperCase()}</div>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center">
+        <div style="width:18px;height:4px;border-radius:2px;background:${isA?'rgba(251,146,60,0.9)':'rgba(125,176,255,0.9)'}"></div>
+        <div style="width:18px;height:4px;border-radius:2px;background:${isA?'rgba(255,255,255,0.1)':'rgba(125,176,255,0.9)'}"></div>
       </div>
     </div>
   </div>
-  <div class="px-4 pt-4 pb-2">
-    <p class="text-xs font-semibold uppercase tracking-wider" style="color:#707783;letter-spacing:0.14em">
-      ${slot==='a'?'Select the first project':'Now select the second project'}
-    </p>
+  <div class="px-4 pt-5 pb-3">
+    <div class="rounded-xl px-4 py-3 flex items-center gap-3" style="background:${isA?'rgba(251,146,60,0.07)':'rgba(125,176,255,0.07)'};border:1px solid ${isA?'rgba(251,146,60,0.2)':'rgba(125,176,255,0.2)'}">
+      <span style="width:9px;height:9px;border-radius:3px;background:${accentColor};flex-shrink:0;box-shadow:0 0 8px ${accentColor}88"></span>
+      <span style="font-size:13px;color:#d8dde4">${isA?'Which project is the <strong style="color:#e9ecf0">baseline</strong>?':'Which project do you want to <strong style="color:#e9ecf0">compare against</strong>?'}</span>
+    </div>
   </div>
   <div>
     ${list.map(p=>{
@@ -1383,19 +1513,19 @@ function renderComparePicker(slot){
       const full=loadProj(p.id);
       const tot=full?computeTotal(full):0;
       const pct=full?progressStats(full).pct:0;
-      return`<button class="w-full text-left px-4 py-3.5 flex items-center justify-between gap-3 active:opacity-70 ${isTaken?'opacity-25 pointer-events-none':''}"
-        style="border-bottom:1px solid rgba(255,255,255,0.04)"
+      return`<button class="w-full text-left px-4 py-3.5 flex items-center justify-between gap-3 active:opacity-70 ${isTaken?'opacity-20 pointer-events-none':''}"
+        style="border-bottom:1px solid rgba(255,200,140,0.055)"
         data-cmp-pick="${slot}|${p.id}">
         <div class="flex items-center gap-3 min-w-0 flex-1">
-          <span style="width:8px;height:8px;border-radius:50%;background:${accentDot};flex-shrink:0"></span>
+          <span style="width:8px;height:8px;border-radius:2px;background:${accentColor};flex-shrink:0"></span>
           <div class="min-w-0">
-            <div class="font-medium truncate" style="font-size:14px;color:#d8dde4">${esc(p.name)}</div>
-            ${p.address?`<div class="truncate" style="font-size:11px;color:#5a626d">${esc(p.address)}</div>`:''}
+            <div class="font-medium truncate" style="font-size:14px;color:#cdd3dc">${esc(p.name)}</div>
+            ${p.address?`<div class="truncate" style="font-size:11px;color:#4a5260">${esc(p.address)}</div>`:''}
           </div>
         </div>
         <div class="text-right flex-shrink-0">
-          <div class="mono font-bold tabular-nums" style="font-size:14px;color:#cfd4db">${tot?fmt(tot):'$0'}</div>
-          <div style="font-size:11px;color:#5a626d">${pct}% done</div>
+          <div class="mono font-bold tabular-nums num-col" style="font-size:14px;color:#cfd4db">${tot?fmt(tot):'—'}</div>
+          <div style="font-size:11px;color:#4a5260;margin-top:1px">${pct}% reviewed</div>
         </div>
       </button>`;
     }).join('')}
@@ -1405,39 +1535,89 @@ function renderComparePicker(slot){
 function renderComparisonResult(pA,pB){
   const totA=computeTotal(pA), totB=computeTotal(pB);
   const {pct:pctA}=progressStats(pA), {pct:pctB}=progressStats(pB);
-  const diff=Math.abs(totA-totB);
-  const cheaper=totA<=totB?'a':'b';
-  const diffPct=Math.max(totA,totB)>0?Math.round(diff/Math.max(totA,totB)*100):0;
+  const netDelta=totB-totA;               // positive = B costs more; negative = B is cheaper
+  const absDelta=Math.abs(netDelta);
+  const cheaper=netDelta<0?'B':'A';
+  const diffPct=Math.max(totA,totB)>0?Math.round(absDelta/Math.max(totA,totB)*100):0;
+
+  // ── Section bars ──
   const secA=getSectionCosts(pA), secB=getSectionCosts(pB);
-  const secDots={interior:'#5b9dff',systems:'#7c8cf8',exterior:'#38c4c4',kitchen:'#46c08a',bathroom:'#38c4c4',bedroom:'#a78bfa',living:'#d3a24e'};
+  const secDots={interior:'#5b9dff',systems:'#7c8cf8',exterior:'#38c4c4',kitchen:'#46c08a',bathroom:'#67cfc7',bedroom:'#a78bfa',living:'#d3a24e'};
   const sectionRows=Object.entries(ROOM_TYPES).map(([type,rt])=>{
     const sa=secA[type]?.total||0, sb=secB[type]?.total||0;
     if(!sa&&!sb)return'';
     const mx=Math.max(sa,sb,1);
     const wA=Math.round(sa/mx*100), wB=Math.round(sb/mx*100);
-    const dot=secDots[type]||'#707783';
+    const dot=secDots[type]||'#6b5535';
     return`<div class="mb-4">
-      <div class="flex items-center gap-2 mb-2">
-        <span style="width:7px;height:7px;border-radius:50%;background:${dot};flex-shrink:0"></span>
-        <span style="font-size:13px;color:#d8dde4">${rt.label}</span>
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span style="width:7px;height:7px;border-radius:2px;background:${dot};flex-shrink:0"></span>
+          <span style="font-size:13px;color:#cdd3dc">${rt.label}</span>
+        </div>
+        ${sa!==sb?`<span class="mono" style="font-size:11px;color:${sb>sa?'#fca5a5':'#6ee7b7'}">${sb>sa?'+':'−'}${fmt(Math.abs(sb-sa))}</span>`:''}
       </div>
       <div class="flex items-center gap-2 mb-1.5">
-        <div class="flex-1 overflow-hidden" style="height:9px;border-radius:3px;background:rgba(255,255,255,0.05)">
-          <div style="height:100%;width:${wA}%;background:linear-gradient(90deg,#fb923c,#ea580c);border-radius:3px;transition:width .3s"></div>
+        <div class="flex-1 overflow-hidden" style="height:7px;border-radius:3px;background:rgba(255,200,140,0.065)">
+          <div style="height:100%;width:${wA}%;background:linear-gradient(90deg,#fb923c,#c2440a);border-radius:3px;box-shadow:0 0 8px rgba(234,88,12,0.35)"></div>
         </div>
-        <span class="mono text-right flex-shrink-0" style="font-size:11.5px;color:#cfd4db;width:50px">${fmt(sa)}</span>
+        <span class="mono num-col flex-shrink-0" style="font-size:11.5px;color:#cfd4db;min-width:52px">${fmt(sa)}</span>
       </div>
       <div class="flex items-center gap-2">
-        <div class="flex-1 overflow-hidden" style="height:9px;border-radius:3px;background:rgba(255,255,255,0.05)">
-          <div style="height:100%;width:${wB}%;background:#6f8bb0;border-radius:3px;transition:width .3s"></div>
+        <div class="flex-1 overflow-hidden" style="height:7px;border-radius:3px;background:rgba(255,200,140,0.065)">
+          <div style="height:100%;width:${wB}%;background:linear-gradient(90deg,#7db0ff,#4a7fc1);border-radius:3px;box-shadow:0 0 8px rgba(125,176,255,0.25)"></div>
         </div>
-        <span class="mono text-right flex-shrink-0" style="font-size:11.5px;color:#9aa1ad;width:50px">${fmt(sb)}</span>
+        <span class="mono num-col flex-shrink-0" style="font-size:11.5px;color:#7db0ff;min-width:52px">${fmt(sb)}</span>
       </div>
     </div>`;
   }).join('');
-  return`<div class="sticky top-0 z-30 pt-safe" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.05)">
+
+  // ── Group delta breakdown ──
+  const grpA=getGroupCosts(pA), grpB=getGroupCosts(pB);
+  const allGKeys=[...new Set([...Object.keys(grpA),...Object.keys(grpB)])];
+  const deltas=allGKeys.map(gKey=>{
+    const a=grpA[gKey]?.total||0, b=grpB[gKey]?.total||0;
+    const delta=b-a;
+    const label=GROUPS[gKey]?.label||gKey;
+    const ac=GROUP_ACCENT[gKey]||{text:'#9aa3b0',bar:'#9aa3b0'};
+    return{gKey,label,a,b,delta,ac};
+  }).filter(r=>r.a||r.b).sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta));
+  const maxAbs=deltas.reduce((m,r)=>Math.max(m,Math.abs(r.delta)),1);
+
+  const deltaRows=deltas.map(r=>{
+    const isPos=r.delta>0;  // B costs more (bad)
+    const isZero=r.delta===0;
+    const pctBar=Math.round(Math.abs(r.delta)/maxAbs*100);
+    const dotColor=isZero?'rgba(255,255,255,0.2)':isPos?'#fca5a5':'#6ee7b7';
+    const deltaLabel=isZero?'same':((isPos?'+':'-')+fmt(Math.abs(r.delta)));
+    const deltaColor=isZero?'#4a5260':isPos?'#fca5a5':'#6ee7b7';
+    return`<div style="border-bottom:1px solid rgba(255,255,255,0.04);padding:10px 0">
+      <div class="flex items-center justify-between gap-2 mb-2">
+        <div class="flex items-center gap-2 min-w-0 flex-1">
+          <span style="width:7px;height:7px;border-radius:2px;background:${r.ac.bar};flex-shrink:0"></span>
+          <span class="truncate" style="font-size:13px;color:#cdd3dc">${esc(r.label)}</span>
+        </div>
+        <span class="mono font-bold flex-shrink-0" style="font-size:13px;color:${deltaColor}">${deltaLabel}</span>
+      </div>
+      <div class="flex items-center gap-2 mb-1">
+        <div class="flex-1 overflow-hidden" style="height:6px;border-radius:3px;background:rgba(255,200,140,0.065)">
+          ${r.a?`<div style="height:100%;width:${Math.round(r.a/Math.max(r.a,r.b,1)*100)}%;background:linear-gradient(90deg,#fb923c,#c2440a);border-radius:3px"></div>`:''}</div>
+        <span class="mono num-col" style="font-size:11px;color:#9aa3b0;min-width:52px">${r.a?fmt(r.a):'—'}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex-1 overflow-hidden" style="height:6px;border-radius:3px;background:rgba(255,200,140,0.065)">
+          ${r.b?`<div style="height:100%;width:${Math.round(r.b/Math.max(r.a,r.b,1)*100)}%;background:linear-gradient(90deg,#7db0ff,#4a7fc1);border-radius:3px"></div>`:''}</div>
+        <span class="mono num-col" style="font-size:11px;color:#7db0ff;min-width:52px">${r.b?fmt(r.b):'—'}</span>
+      </div>
+      ${!isZero?`<div style="margin-top:6px;height:3px;border-radius:2px;background:rgba(255,255,255,0.04);overflow:hidden">
+        <div style="height:100%;width:${pctBar}%;background:${isPos?'linear-gradient(90deg,#fca5a5,#b91c1c)':'linear-gradient(90deg,#6ee7b7,#166534)'};border-radius:2px"></div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  return`<div class="sticky top-0 z-30 pt-safe" style="background:linear-gradient(180deg,#1e1710,#1b1410);border-bottom:1px solid rgba(255,200,140,0.075);box-shadow:0 4px 24px rgba(0,0,0,0.4)">
     <div class="flex items-center px-4 gap-3" style="height:58px">
-      <button data-action="compare-close" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#1c2027;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;color:#aab1bd">
+      <button data-action="compare-close" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#2e241a;border:1px solid rgba(255,200,140,0.075);display:flex;align-items:center;justify-content:center;color:#aab1bd">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
@@ -1446,50 +1626,74 @@ function renderComparisonResult(pA,pB){
       <button data-action="compare-reset" class="font-semibold active:opacity-70" style="font-size:12px;color:#7db0ff;min-height:44px;padding:0 8px">Reselect</button>
     </div>
   </div>
+
+  <!-- A vs B total cards -->
   <div class="flex gap-3 px-4 pt-4 pb-1">
-    <div class="flex-1 rounded-2xl p-3.5" style="background:#1c2027;border:1px solid rgba(249,115,22,0.22);box-shadow:0 0 24px -10px rgba(234,88,12,0.4)">
+    <div class="flex-1 rounded-2xl p-3.5" style="background:radial-gradient(120% 130% at 0% 0%,rgba(249,115,22,0.10),rgba(0,0,0,0) 55%),linear-gradient(160deg,#2e241a,#2e241a);border:1px solid rgba(249,115,22,0.28);box-shadow:0 0 28px -10px rgba(234,88,12,0.35)">
       <div class="flex items-center gap-1.5 mb-2">
-        <span style="width:7px;height:7px;border-radius:2px;background:#f97316;display:inline-block"></span>
-        <span style="font-size:10px;letter-spacing:0.08em;color:#aab1bd;font-weight:600">PROJECT A</span>
+        <span style="width:7px;height:7px;border-radius:2px;background:#fb923c;display:inline-block;box-shadow:0 0 6px #fb923c"></span>
+        <span style="font-size:10px;letter-spacing:0.13em;color:#9aa3b0;font-weight:600">PROJECT A</span>
       </div>
       <div class="font-semibold leading-snug truncate" style="font-size:13px;color:#e9ecf0">${esc(pA.name)}</div>
-      ${pA.address?`<div class="truncate" style="font-size:11px;color:#5a626d;margin-top:2px">${esc(pA.address)}</div>`:''}
-      <div class="mono font-semibold tabular-nums grad-orange" style="font-size:22px;margin-top:8px;line-height:1">${fmt(totA)}</div>
-      <div class="mono" style="font-size:11px;color:#707783;margin-top:5px">${pctA}% reviewed</div>
+      ${pA.address?`<div class="truncate" style="font-size:11px;color:#4a5260;margin-top:2px">${esc(pA.address)}</div>`:''}
+      <div class="mono font-semibold tabular-nums grad-total" style="font-size:24px;margin-top:8px;line-height:1">${fmt(totA)}</div>
+      <div class="mono" style="font-size:11px;color:#6b5535;margin-top:5px">${pctA}% reviewed</div>
     </div>
-    <div class="flex-1 rounded-2xl p-3.5" style="background:#1c2027;border:1px solid rgba(255,255,255,0.06)">
+    <div class="flex-1 rounded-2xl p-3.5" style="background:radial-gradient(120% 130% at 100% 0%,rgba(125,176,255,0.09),rgba(0,0,0,0) 55%),linear-gradient(160deg,#171d27,#12181f);border:1px solid rgba(125,176,255,0.22)">
       <div class="flex items-center gap-1.5 mb-2">
-        <span style="width:7px;height:7px;border-radius:2px;background:#6f8bb0;display:inline-block"></span>
-        <span style="font-size:10px;letter-spacing:0.08em;color:#aab1bd;font-weight:600">PROJECT B</span>
+        <span style="width:7px;height:7px;border-radius:2px;background:#7db0ff;display:inline-block;box-shadow:0 0 6px #7db0ff88"></span>
+        <span style="font-size:10px;letter-spacing:0.13em;color:#9aa3b0;font-weight:600">PROJECT B</span>
       </div>
       <div class="font-semibold leading-snug truncate" style="font-size:13px;color:#e9ecf0">${esc(pB.name)}</div>
-      ${pB.address?`<div class="truncate" style="font-size:11px;color:#5a626d;margin-top:2px">${esc(pB.address)}</div>`:''}
-      <div class="mono font-semibold tabular-nums" style="font-size:22px;margin-top:8px;line-height:1;background:linear-gradient(180deg,#eef2f8,#6f8bb0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">${fmt(totB)}</div>
-      <div class="mono" style="font-size:11px;color:#707783;margin-top:5px">${pctB}% reviewed</div>
+      ${pB.address?`<div class="truncate" style="font-size:11px;color:#4a5260;margin-top:2px">${esc(pB.address)}</div>`:''}
+      <div class="mono font-semibold tabular-nums" style="font-size:24px;margin-top:8px;line-height:1;background:linear-gradient(160deg,#c8dcff,#7db0ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">${fmt(totB)}</div>
+      <div class="mono" style="font-size:11px;color:#6b5535;margin-top:5px">${pctB}% reviewed</div>
     </div>
   </div>
-  ${diff>0?`<div class="mx-4 my-3 flex items-center justify-center gap-3 rounded-xl py-3 px-4" style="background:#15181d;border:1px solid rgba(255,255,255,0.05)">
-    <span style="font-size:13px;color:#aab1bd">Project ${cheaper.toUpperCase()} is cheaper by</span>
-    <span class="mono font-bold" style="font-size:14px;color:#e0bd7a">${fmt(diff)}</span>
-    <span style="font-size:13px;color:#aab1bd">(${diffPct}%)</span>
-  </div>`:`<div class="mx-4 my-3 rounded-xl py-3 px-4 text-center" style="background:#15181d;border:1px solid rgba(255,255,255,0.05);font-size:13px;color:#707783">Equal estimated cost</div>`}
-  <div class="px-4 pb-6">
-    <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:#707783;letter-spacing:0.14em">Cost by Section</p>
-    <div class="flex items-center gap-4 mb-4">
-      <div class="flex items-center gap-2"><span style="width:8px;height:8px;border-radius:2px;background:#f97316;display:inline-block"></span><span style="font-size:11px;color:#868e9b">Project A</span></div>
-      <div class="flex items-center gap-2"><span style="width:8px;height:8px;border-radius:2px;background:#6f8bb0;display:inline-block"></span><span style="font-size:11px;color:#868e9b">Project B</span></div>
+
+  <!-- Net delta banner -->
+  ${absDelta>0?`<div class="mx-4 my-3 flex items-center gap-3 rounded-xl py-3.5 px-4" style="background:${netDelta>0?'rgba(185,28,28,0.09)':'rgba(22,101,52,0.09)'};border:1px solid ${netDelta>0?'rgba(252,165,165,0.22)':'rgba(110,231,183,0.22)'}">
+    <div style="width:28px;height:28px;border-radius:8px;background:${netDelta>0?'rgba(185,28,28,0.2)':'rgba(22,101,52,0.2)'};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${netDelta>0?'↑':'↓'}</div>
+    <div class="flex-1 min-w-0">
+      <div style="font-size:13px;color:#cdd3dc">Project ${cheaper} is <strong>${cheaper==='A'?'cheaper':'more expensive'}</strong> by</div>
+      <div class="mono font-bold" style="font-size:17px;color:${netDelta>0?'#fca5a5':'#6ee7b7'}">${fmt(absDelta)} <span style="font-size:12px;font-weight:500;opacity:0.7">(${diffPct}%)</span></div>
+    </div>
+  </div>`:`<div class="mx-4 my-3 rounded-xl py-3 px-4 text-center" style="background:#261e15;border:1px solid rgba(255,200,140,0.075);font-size:13px;color:#6b5535">Identical estimated cost</div>`}
+
+  <!-- Cost by section -->
+  <div class="px-4 pt-1 pb-4">
+    <div class="flex items-center justify-between mb-3">
+      <p class="text-xs font-semibold uppercase tracking-wider" style="color:#6b5535;letter-spacing:0.14em">Cost by Section</p>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5"><span style="width:7px;height:7px;border-radius:2px;background:#fb923c;display:inline-block"></span><span style="font-size:11px;color:#6b5535">A</span></div>
+        <div class="flex items-center gap-1.5"><span style="width:7px;height:7px;border-radius:2px;background:#7db0ff;display:inline-block"></span><span style="font-size:11px;color:#6b5535">B</span></div>
+      </div>
     </div>
     ${sectionRows}
-  </div>`;
+  </div>
+
+  <!-- Per-group delta breakdown -->
+  ${deltas.length?`<div class="px-4 pt-2 pb-8" style="border-top:1px solid rgba(255,200,140,0.075)">
+    <div class="flex items-center justify-between mb-1 pt-4">
+      <p class="text-xs font-semibold uppercase tracking-wider" style="color:#6b5535;letter-spacing:0.14em">Group Delta Breakdown</p>
+      <span style="font-size:10px;color:#4a5260">sorted by biggest swing</span>
+    </div>
+    <div style="font-size:11px;color:#4a5260;margin-bottom:12px">Red = B costs more · Green = B costs less</div>
+    ${deltaRows}
+  </div>`:``}`;
 }
 
 function renderCompareView(){
   const list=loadList();
-  if(list.length<2) return`<div class="flex flex-col items-center justify-center min-h-screen px-8 text-center" style="background:#0d0f12">
-    <div class="text-4xl mb-4">⚖</div>
+  if(list.length<2) return`<div class="flex flex-col items-center justify-center min-h-screen px-8 text-center" style="background:radial-gradient(ellipse 70% 40% at 50% 0%,rgba(220,100,15,0.06),transparent 60%),#130e08">
+    <div class="flex items-center justify-center mb-5" style="width:72px;height:72px;border-radius:22px;background:linear-gradient(160deg,#2e241a,#261e15);border:1px solid rgba(125,176,255,0.2);box-shadow:0 16px 40px -12px rgba(0,0,0,0.6)">
+      <svg class="w-9 h-9" style="color:#7db0ff" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+    </div>
     <h2 class="font-bold text-lg mb-2" style="color:#e9ecf0">Need 2 projects to compare</h2>
-    <p class="text-sm mb-6" style="color:#707783">You only have ${list.length} project saved. Create another one first.</p>
-    <button data-action="compare-close" class="px-5 py-3 text-white font-semibold rounded-xl text-sm active:opacity-80" style="background:linear-gradient(180deg,#f97316,#ea580c)">Back</button>
+    <p class="text-sm mb-8 max-w-xs leading-relaxed" style="color:#6b5535">You only have ${list.length} project saved. Create another estimate first, then come back to compare.</p>
+    <button data-action="compare-close" class="px-6 py-3 text-white font-semibold rounded-xl text-sm active:opacity-80" style="background:linear-gradient(160deg,#f97316,#c2440a);box-shadow:0 10px 28px -8px rgba(194,68,10,0.6)">← Back to Project</button>
   </div>`;
   if(!cmpState.a) return renderComparePicker('a');
   if(!cmpState.b) return renderComparePicker('b');
@@ -1501,9 +1705,9 @@ function renderCompareView(){
 function renderProject(){
   const costTotal=computeTotal(proj);
   const{pct,done,total:grpTotal}=progressStats(proj);
-  const iconBtn=`display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:#1c2027;border:1px solid rgba(255,255,255,0.06);color:#aab1bd`;
+  const iconBtn=`display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:#2e241a;border:1px solid rgba(255,200,140,0.075);color:#aab1bd`;
   return`
-    <div class="sticky top-0 z-30 pt-safe" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.05)">
+    <div class="sticky top-0 z-30 pt-safe" style="background:linear-gradient(180deg,#1e1710,#1b1410);border-bottom:1px solid rgba(255,200,140,0.075);box-shadow:0 4px 24px rgba(0,0,0,0.4)">
       <div class="flex items-center px-4 gap-2" style="height:58px">
         <button data-open-side class="active:opacity-60 flex-shrink-0" style="${iconBtn}">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1512,7 +1716,7 @@ function renderProject(){
         </button>
         <div class="flex-1 min-w-0 px-2">
           <div class="font-semibold leading-tight truncate" style="font-size:15px;color:#e9ecf0;letter-spacing:-0.01em">${esc(proj.name)}</div>
-          ${proj.address?`<div class="truncate" style="font-size:12px;color:#707783;margin-top:1px">${esc(proj.address)}</div>`:''}
+          ${proj.address?`<div class="truncate" style="font-size:12px;color:#6b5535;margin-top:1px">${esc(proj.address)}</div>`:''}
         </div>
         <button data-action="open-triage" class="active:opacity-60 flex-shrink-0" style="${iconBtn}" title="Cost triage">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -1533,30 +1737,30 @@ function renderProject(){
       </div>
       <div class="px-4 pb-3">
         <div class="flex items-center justify-between mb-2">
-          <span id="progress-label" style="font-size:10.5px;letter-spacing:0.13em;color:#707783;font-weight:600">${pct===100?'ALL GROUPS REVIEWED':`${pct}% · ${done} OF ${grpTotal} GROUPS`}</span>
-          <span id="progress-txt" class="mono" style="font-size:11.5px;color:#aab1bd">${pct}%</span>
+          <span id="progress-label" style="font-size:10.5px;letter-spacing:0.14em;color:#6b5535;font-weight:600">${pct===100?'ALL GROUPS REVIEWED':`${pct}% · ${done} OF ${grpTotal} GROUPS`}</span>
+          <span id="progress-txt" class="mono" style="font-size:11.5px;color:#9aa3b0">${pct}%</span>
         </div>
-        <div style="height:6px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden">
-          <div id="progress-bar" class="transition-all duration-500 ease-out" style="height:100%;border-radius:4px;width:${pct}%;background:${pct===100?'linear-gradient(90deg,#5fcf9a,#46c08a)':'linear-gradient(90deg,#cdd3dc,#eef1f5)'}"></div>
+        <div style="height:5px;border-radius:4px;background:rgba(255,200,140,0.065);overflow:hidden">
+          <div id="progress-bar" class="transition-all duration-500 ease-out" style="height:100%;border-radius:4px;width:${pct}%;background:${pct===100?'linear-gradient(90deg,#52d69a,#34a870)':'linear-gradient(90deg,#9aa3b0,#d8dde4)'}"></div>
         </div>
       </div>
     </div>
     <div style="min-height:calc(100vh - 90px - 84px)">
       ${proj.rooms.map(r=>renderRoom(r,costTotal)).join('')}
       ${renderAddRoomSection()}
-      <div id="photos-section" style="border-top:1px solid rgba(255,255,255,0.05);margin-top:8px">
+      <div id="photos-section" style="border-top:1px solid rgba(255,200,140,0.065);margin-top:8px">
         ${renderPhotosSectionContent()}
       </div>
     </div>
-    <div class="sticky bottom-0 z-30" style="background:#1c2027;border-top:1px solid rgba(255,255,255,0.07);box-shadow:0 -14px 34px -10px rgba(0,0,0,0.5)">
+    <div class="sticky bottom-0 z-30" style="background:linear-gradient(180deg,#181c23 0%,#261e15 100%);border-top:1px solid rgba(255,200,140,0.10);box-shadow:0 -16px 40px -8px rgba(0,0,0,0.6)">
       <div class="flex items-center justify-between px-5 pt-3.5 pb-4 safe-bot gap-4">
         <div>
-          <div class="uppercase" style="font-size:10px;letter-spacing:0.14em;color:#707783;font-weight:600">Total Cost</div>
-          <div id="footer-total" class="mono grad-orange tabular-nums" style="font-size:31px;font-weight:600;line-height:1.05;margin-top:3px">${fmt(costTotal)}</div>
+          <div class="uppercase" style="font-size:10px;letter-spacing:0.16em;color:#6b5535;font-weight:600">Total Cost</div>
+          <div id="footer-total" class="mono grad-total tabular-nums" style="font-size:33px;font-weight:600;line-height:1.05;margin-top:3px">${fmt(costTotal)}</div>
         </div>
         <button data-action="export"
           class="flex-shrink-0 text-white font-semibold text-sm active:opacity-80 select-none flex items-center gap-2"
-          style="height:50px;padding:0 22px;border-radius:14px;background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 10px 24px -8px rgba(234,88,12,0.5)">
+          style="height:52px;padding:0 24px;border-radius:14px;background:linear-gradient(160deg,#f97316,#c2440a);box-shadow:0 12px 28px -8px rgba(194,68,10,0.6),inset 0 1px 0 rgba(255,255,255,0.12)">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           Export ZIP
         </button>
@@ -1568,10 +1772,10 @@ function renderProject(){
 function renderWelcome(){
   const list=loadList();
   return`
-    <div class="min-h-screen flex flex-col" style="background:#0d0f12">
-      <div class="pt-safe flex-shrink-0" style="background:#101216;border-bottom:1px solid rgba(255,255,255,0.05)">
+    <div class="min-h-screen flex flex-col" style="background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(249,115,22,0.06),transparent 60%),#130e08">
+      <div class="pt-safe flex-shrink-0" style="background:#1e1710;border-bottom:1px solid rgba(255,200,140,0.075)">
         <div class="flex items-center h-14 px-4 gap-3">
-          <button data-open-side class="active:opacity-60 flex items-center justify-center" style="color:#aab1bd;min-width:44px;min-height:44px">
+          <button data-open-side class="active:opacity-60 flex items-center justify-center" style="color:#9aa3b0;min-width:44px;min-height:44px">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
@@ -1580,18 +1784,18 @@ function renderWelcome(){
         </div>
       </div>
       <div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <div class="flex items-center justify-center mb-6" style="width:80px;height:80px;border-radius:28px;background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 20px 50px -15px rgba(234,88,12,0.6)">
-          <svg class="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <div class="flex items-center justify-center mb-6" style="width:84px;height:84px;border-radius:30px;background:linear-gradient(160deg,#f97316,#c2440a);box-shadow:0 24px 60px -12px rgba(194,68,10,0.7),inset 0 1px 0 rgba(255,255,255,0.15)">
+          <svg class="w-11 h-11 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3 9.75L12 3l9 6.75V21a.75.75 0 01-.75.75H3.75A.75.75 0 013 21V9.75z"/>
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 21V12h6v9"/>
           </svg>
         </div>
         <h1 class="text-2xl font-bold mb-2" style="color:#e9ecf0">Spark Estimator</h1>
-        <p class="mb-10 text-sm max-w-xs leading-relaxed" style="color:#707783">Fast repair cost estimates during property walkthroughs.</p>
-        <button data-open-modal class="w-full max-w-xs py-4 text-white rounded-2xl font-semibold text-base active:opacity-80 active:scale-95 transition-transform" style="background:linear-gradient(180deg,#f97316,#ea580c);box-shadow:0 14px 36px -10px rgba(234,88,12,0.55)">
+        <p class="mb-10 text-sm max-w-xs leading-relaxed" style="color:#6b5535">Fast repair cost estimates during property walkthroughs.</p>
+        <button data-open-modal class="w-full max-w-xs py-4 text-white rounded-2xl font-semibold text-base active:opacity-80 active:scale-95 transition-transform" style="background:linear-gradient(160deg,#f97316,#c2440a);box-shadow:0 16px 40px -10px rgba(194,68,10,0.65),inset 0 1px 0 rgba(255,255,255,0.12)">
           + Start New Project
         </button>
-        ${list.length>0?`<button data-open-side class="mt-5 font-medium text-sm py-2" style="color:#f97316">
+        ${list.length>0?`<button data-open-side class="mt-5 font-medium text-sm py-2" style="color:#fb923c">
           View ${list.length} existing project${list.length!==1?'s':''} →
         </button>`:''}
       </div>
@@ -1611,15 +1815,15 @@ function render(){
 function refreshPanelList(){
   const list=loadList();
   document.getElementById('panel-list').innerHTML=list.length===0
-    ?`<p class="text-sm text-center py-8 px-4" style="color:#5a626d">No projects yet</p>`
+    ?`<p class="text-sm text-center py-8 px-4" style="color:#4a5260">No projects yet</p>`
     :list.map(p=>{
       const isActive=proj&&p.id===proj.id;
       return`<button class="w-full text-left px-4 py-3.5 active:opacity-70 ${isActive?'border-l-[3px]':''}"
-        style="${isActive?'background:rgba(91,157,255,0.07);border-color:#5b9dff':'border-bottom:1px solid rgba(255,255,255,0.04)'}"
+        style="${isActive?'background:rgba(91,157,255,0.08);border-color:#5b9dff;box-shadow:inset 3px 0 0 #5b9dff':'border-bottom:1px solid rgba(255,255,255,0.04)'}"
         data-switch="${p.id}">
-        <div class="font-semibold text-sm truncate" style="color:${isActive?'#e9ecf0':'#cfd4db'}">${esc(p.name)}</div>
-        ${p.address?`<div class="truncate mt-0.5" style="font-size:11px;color:#5a626d">${esc(p.address)}</div>`:''}
-        <div class="mt-0.5 mono" style="font-size:11px;color:#5a626d">${new Date(p.updatedAt).toLocaleDateString()}</div>
+        <div class="font-semibold text-sm truncate" style="color:${isActive?'#e9ecf0':'#cad0db'}">${esc(p.name)}</div>
+        ${p.address?`<div class="truncate mt-0.5" style="font-size:11px;color:#4a5260">${esc(p.address)}</div>`:''}
+        <div class="mt-0.5 mono" style="font-size:11px;color:#4a5260">${new Date(p.updatedAt).toLocaleDateString()}</div>
       </button>`;
     }).join('');
 }
@@ -1733,6 +1937,11 @@ function setupListeners(){
     if(cb.tagName==='INPUT'&&cb.dataset.checkbox!==undefined)handleCheck(cb.dataset.room,cb.dataset.gkey,cb.dataset.item,cb.checked);
     if(cb.matches('[data-photo-input]')&&cb.files?.[0]){
       handlePhotoFile(cb.files[0]);
+      cb.value='';
+      return;
+    }
+    if(cb.matches('[data-room-photo-input]')&&cb.files?.[0]){
+      handlePhotoFile(cb.files[0],cb.dataset.roomPhotoInput);
       cb.value='';
       return;
     }
