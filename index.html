@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="Spark Estimator" />
   <title>Spark Estimator</title>
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ea580c" />
+  <meta name="theme-color" content="#1e1710" id="meta-theme-color" />
   <script>if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{}));</script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -17,9 +17,59 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
+    /* ── Theme tokens ─────────────────────────────────────────────────────── */
+    html[data-theme="dark"] {
+      --c-bg:#130e08; --c-s1:#1e1710; --c-s1b:#1b1410;
+      --c-s2:#261e15; --c-s2b:#1c1510; --c-s3:#2e241a; --c-s4:#382c1e;
+      --c-gc1:#14181f; --c-gc2:#11141a; --c-gb1:#261e15; --c-gb2:#1c1510;
+      --c-t0:#e9ecf0; --c-t1:#d8dde4; --c-t1b:#cdd3dc; --c-t1c:#cfd4db; --c-t1d:#cad0db;
+      --c-t2:#9aa3b0; --c-t2b:#aab1bd; --c-t3:#707783;
+      --c-t4:#6b5535; --c-t5:#5a626d; --c-t6:#4a5260; --c-t7:#3a404a;
+      --c-tu:#8a919e; --c-tq:#7a8290; --c-tq2:#e8ebef;
+      --c-bw:rgba(255,200,140,0.085); --c-bws:rgba(255,200,140,0.055);
+      --c-bwm:rgba(255,200,140,0.10); --c-bwk:rgba(255,200,140,0.12);
+      --c-bgc:rgba(255,255,255,0.055); --c-bi:rgba(255,255,255,0.03);
+      --c-bd:rgba(255,255,255,0.04); --c-bc:rgba(255,255,255,0.12);
+      --c-track:rgba(255,200,140,0.065);
+      --c-ov-panel:rgba(8,5,2,0.75); --c-ov-modal:rgba(8,5,2,0.78);
+      --c-sh-h:rgba(0,0,0,0.4); --c-sh-f:rgba(0,0,0,0.6);
+      --c-panel-sh:6px 0 48px rgba(0,0,0,0.8),1px 0 0 rgba(255,200,140,0.075);
+      --c-modal-sh:0 48px 96px -20px rgba(0,0,0,0.9),0 0 0 1px rgba(255,200,140,0.12),inset 0 1px 0 rgba(255,200,140,0.10);
+      --c-head-bg:linear-gradient(180deg,#1e1710,#1b1410);
+      --c-modal-box:linear-gradient(160deg,#2e241a 0%,#261e15 100%);
+      --c-footer-bg:linear-gradient(180deg,#181c23 0%,#261e15 100%);
+      --c-naoff-bg:rgba(255,200,140,0.065); --c-naoff-br:rgba(255,200,140,0.065);
+      --c-prog-empty:linear-gradient(90deg,#cdd3dc,#eef1f5);
+      --c-welcome-bg:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(249,115,22,0.06),transparent 60%),#130e08;
+    }
+    html[data-theme="light"] {
+      --c-bg:#f5efe7; --c-s1:#ede5da; --c-s1b:#e8dfd3;
+      --c-s2:#e4dbd0; --c-s2b:#dbd0c3; --c-s3:#d9cfbf; --c-s4:#cfc4b4;
+      --c-gc1:#eef1f6; --c-gc2:#e8ecf3; --c-gb1:#f8f4ef; --c-gb2:#f2ece4;
+      --c-t0:#18120a; --c-t1:#261c0e; --c-t1b:#2a2010; --c-t1c:#282012; --c-t1d:#2c2214;
+      --c-t2:#5c4535; --c-t2b:#6a5040; --c-t3:#8a6d55;
+      --c-t4:#7a6040; --c-t5:#9a8068; --c-t6:#b09075; --c-t7:#c4a888;
+      --c-tu:#8a7a65; --c-tq:#7a6550; --c-tq2:#18120a;
+      --c-bw:rgba(130,90,40,0.16); --c-bws:rgba(130,90,40,0.10);
+      --c-bwm:rgba(130,90,40,0.20); --c-bwk:rgba(130,90,40,0.25);
+      --c-bgc:rgba(80,100,150,0.13); --c-bi:rgba(0,0,0,0.05);
+      --c-bd:rgba(0,0,0,0.07); --c-bc:rgba(0,0,0,0.18);
+      --c-track:rgba(130,90,40,0.12);
+      --c-ov-panel:rgba(20,14,6,0.45); --c-ov-modal:rgba(20,14,6,0.50);
+      --c-sh-h:rgba(80,50,20,0.10); --c-sh-f:rgba(80,50,20,0.15);
+      --c-panel-sh:6px 0 48px rgba(80,50,20,0.20),1px 0 0 rgba(130,90,40,0.15);
+      --c-modal-sh:0 48px 96px -20px rgba(20,10,4,0.25),0 0 0 1px rgba(130,90,40,0.18),inset 0 1px 0 rgba(255,200,140,0.12);
+      --c-head-bg:linear-gradient(180deg,#ede5da,#e8dfd3);
+      --c-modal-box:linear-gradient(160deg,#e4dbd0 0%,#ddd3c5 100%);
+      --c-footer-bg:linear-gradient(180deg,#ece5d8 0%,#e8ddd0 100%);
+      --c-naoff-bg:rgba(130,90,40,0.08); --c-naoff-br:rgba(130,90,40,0.10);
+      --c-prog-empty:linear-gradient(90deg,#b0a090,#c4b8a8);
+      --c-welcome-bg:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(249,115,22,0.05),transparent 60%),#f5efe7;
+    }
+    /* ── Base ─────────────────────────────────────────────────────────────── */
     *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
     html{height:100%}
-    body{margin:0;min-height:100%;font-family:'IBM Plex Sans',system-ui,sans-serif;overscroll-behavior:none;background:#130e08;color:#f4f5f7}
+    body{margin:0;min-height:100%;font-family:'IBM Plex Sans',system-ui,sans-serif;overscroll-behavior:none;background:var(--c-bg);color:var(--c-t0)}
     input[type=text],input[type=number],input[type=file],textarea{font-size:max(16px,1rem)!important}
     input[type=number]::-webkit-inner-spin-button,
     input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -28,45 +78,48 @@
     .pt-safe{padding-top:max(0px,env(safe-area-inset-top))}
     #side-panel{transition:transform .25s cubic-bezier(.4,0,.2,1)}
     .group-body{transition:opacity .15s}
-    /* accent cost bars — overridden per-group via inline style */
     .cost-bar{position:absolute;bottom:0;left:0;height:3px;background:linear-gradient(90deg,#fb923c,#ea580c);transition:width .45s cubic-bezier(.4,0,.2,1)}
     .room-cost-bar{position:absolute;bottom:0;left:0;height:3px;transition:width .45s cubic-bezier(.4,0,.2,1)}
     .na-on{background:rgba(70,192,138,0.15);color:#5fcf9a;border:1px solid rgba(70,192,138,0.3)}
-    .na-off{background:rgba(255,200,140,0.065);color:#6b5535;border:1px solid rgba(255,200,140,0.065)}
-    /* gradient text utilities */
-    .grad-orange{background:linear-gradient(170deg,#ffe4c2 0%,#f97316 55%,#c2440a 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-    .grad-total{background:linear-gradient(160deg,#fff1e0 0%,#ffa94d 40%,#ea580c 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .na-off{background:var(--c-naoff-bg);color:var(--c-t4);border:1px solid var(--c-naoff-br)}
+    /* gradient text */
+    html[data-theme="dark"] .grad-orange{background:linear-gradient(170deg,#ffe4c2 0%,#f97316 55%,#c2440a 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    html[data-theme="light"] .grad-orange{background:linear-gradient(170deg,#ea580c 0%,#c2440a 55%,#9a3008 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    html[data-theme="dark"] .grad-total{background:linear-gradient(160deg,#fff1e0 0%,#ffa94d 40%,#ea580c 80%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    html[data-theme="light"] .grad-total{background:linear-gradient(160deg,#ea580c 0%,#c2440a 50%,#9a2e06 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
     .mono{font-family:'IBM Plex Mono',monospace}
-    /* tabular number column alignment */
     .num-col{font-variant-numeric:tabular-nums;text-align:right;min-width:58px;display:inline-block}
-    /* triage card glows */
-    .triage-glow-1{box-shadow:0 0 0 1px rgba(251,146,60,0.45),0 8px 32px -8px rgba(234,88,12,0.6),inset 0 0 24px rgba(234,88,12,0.06)}
-    .triage-glow-2{box-shadow:0 0 0 1px rgba(251,146,60,0.32),0 6px 24px -8px rgba(234,88,12,0.45)}
-    .triage-glow-3{box-shadow:0 0 0 1px rgba(251,146,60,0.20),0 4px 16px -8px rgba(234,88,12,0.30)}
+    /* triage glows */
+    html[data-theme="dark"] .triage-glow-1{box-shadow:0 0 0 1px rgba(251,146,60,0.45),0 8px 32px -8px rgba(234,88,12,0.6),inset 0 0 24px rgba(234,88,12,0.06)}
+    html[data-theme="dark"] .triage-glow-2{box-shadow:0 0 0 1px rgba(251,146,60,0.32),0 6px 24px -8px rgba(234,88,12,0.45)}
+    html[data-theme="dark"] .triage-glow-3{box-shadow:0 0 0 1px rgba(251,146,60,0.20),0 4px 16px -8px rgba(234,88,12,0.30)}
+    html[data-theme="light"] .triage-glow-1{box-shadow:0 0 0 1px rgba(234,88,12,0.35),0 8px 28px -8px rgba(194,68,10,0.28),inset 0 0 20px rgba(234,88,12,0.04)}
+    html[data-theme="light"] .triage-glow-2{box-shadow:0 0 0 1px rgba(234,88,12,0.24),0 6px 20px -8px rgba(194,68,10,0.18)}
+    html[data-theme="light"] .triage-glow-3{box-shadow:0 0 0 1px rgba(234,88,12,0.14),0 4px 12px -8px rgba(194,68,10,0.12)}
     /* elevation surfaces */
-    .surf-0{background:#130e08}
-    .surf-1{background:#1e1710}
-    .surf-2{background:#261e15}
-    .surf-3{background:#2e241a}
-    .surf-4{background:#2e241a}
-    .surf-5{background:#382c1e}
+    .surf-0{background:var(--c-bg)}
+    .surf-1{background:var(--c-s1)}
+    .surf-2{background:var(--c-s2)}
+    .surf-3{background:var(--c-s3)}
+    .surf-4{background:var(--c-s3)}
+    .surf-5{background:var(--c-s4)}
     @media(prefers-reduced-motion:reduce){.cost-bar,.room-cost-bar,.group-body,#progress-bar,#side-panel{transition:none}}
   </style>
 </head>
-<body style="background:#130e08">
+<body>
 
 <!-- ── Side panel ─────────────────────────────────────────────────────── -->
-<div id="panel-overlay" class="fixed inset-0 z-40 hidden" style="background:rgba(8,5,2,0.75);backdrop-filter:blur(3px)"></div>
-<div id="side-panel" class="fixed top-0 left-0 h-full w-72 z-50 -translate-x-full flex flex-col" style="background:#261e15;box-shadow:6px 0 48px rgba(0,0,0,0.8),1px 0 0 rgba(255,200,140,0.075)">
-  <div class="px-4 pt-safe flex-shrink-0" style="background:#1e1710;border-bottom:1px solid rgba(255,200,140,0.085)">
+<div id="panel-overlay" class="fixed inset-0 z-40 hidden" style="background:var(--c-ov-panel);backdrop-filter:blur(3px)"></div>
+<div id="side-panel" class="fixed top-0 left-0 h-full w-72 z-50 -translate-x-full flex flex-col" style="background:var(--c-s2);box-shadow:var(--c-panel-sh)">
+  <div class="px-4 pt-safe flex-shrink-0" style="background:var(--c-s1);border-bottom:1px solid var(--c-bw)">
     <div class="flex items-center justify-between py-4 mt-1">
-      <span class="font-bold text-base" style="color:#e9ecf0">Projects</span>
-      <button id="close-panel" class="p-2 text-xl leading-none active:opacity-60" style="color:#6b5535;min-width:44px;min-height:44px">✕</button>
+      <span class="font-bold text-base" style="color:var(--c-t0)">Projects</span>
+      <button id="close-panel" class="p-2 text-xl leading-none active:opacity-60" style="color:var(--c-t4);min-width:44px;min-height:44px">✕</button>
     </div>
   </div>
   <div id="panel-list" class="flex-1 overflow-y-auto"></div>
-  <div class="p-4 flex-shrink-0 safe-bot space-y-2" style="border-top:1px solid rgba(255,200,140,0.085);background:#1e1710">
-    <button id="compare-btn" class="w-full py-2.5 rounded-xl font-semibold text-sm active:opacity-70 flex items-center justify-center gap-2" style="background:#2e241a;border:1px solid rgba(255,200,140,0.10);color:#9aa3b0">
+  <div class="p-4 flex-shrink-0 safe-bot space-y-2" style="border-top:1px solid var(--c-bw);background:var(--c-s1)">
+    <button id="compare-btn" class="w-full py-2.5 rounded-xl font-semibold text-sm active:opacity-70 flex items-center justify-center gap-2" style="background:var(--c-s3);border:1px solid var(--c-bwm);color:var(--c-t2)">
       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
@@ -78,10 +131,10 @@
 
 <!-- ── Modal ─────────────────────────────────────────────────────────── -->
 <div id="modal" class="fixed inset-0 z-[60] hidden">
-  <div id="modal-bg" class="absolute inset-0" style="background:rgba(8,5,2,0.78);backdrop-filter:blur(4px)"></div>
+  <div id="modal-bg" class="absolute inset-0" style="background:var(--c-ov-modal);backdrop-filter:blur(4px)"></div>
   <div class="absolute inset-0 overflow-y-auto pointer-events-none">
     <div class="flex min-h-full items-center justify-center p-5">
-      <div id="modal-box" class="rounded-2xl w-full max-w-sm pointer-events-auto my-auto" style="background:linear-gradient(160deg,#2e241a 0%,#261e15 100%);box-shadow:0 48px 96px -20px rgba(0,0,0,0.9),0 0 0 1px rgba(255,200,140,0.12),inset 0 1px 0 rgba(255,200,140,0.10)"></div>
+      <div id="modal-box" class="rounded-2xl w-full max-w-sm pointer-events-auto my-auto" style="background:var(--c-modal-box);box-shadow:var(--c-modal-sh)"></div>
     </div>
   </div>
 </div>
@@ -241,6 +294,8 @@ const ROOM_TYPES = {
   bedroom: {label:'Bedroom',             groups:['flooring','paint_wall','doors'],                          singleton:false},
   living:  {label:'Living / Common Area',groups:['flooring','paint_wall','doors'],                          singleton:false},
 };
+
+// Dark-mode room colors
 const ROOM_COLORS={
   interior:{dot:'#5b9dff',glow:'rgba(91,157,255,0.7)', text:'#7db0ff',radial:'rgba(91,157,255,0.10)', dashed:'rgba(91,157,255,0.45)'},
   systems: {dot:'#7c8cf8',glow:'rgba(124,140,248,0.7)',text:'#96a2fa',radial:'rgba(124,140,248,0.11)',dashed:'rgba(124,140,248,0.45)'},
@@ -251,7 +306,18 @@ const ROOM_COLORS={
   living:  {dot:'#d3a24e',glow:'rgba(211,162,78,0.7)', text:'#e0bd7a',radial:'rgba(211,162,78,0.11)', dashed:'rgba(211,162,78,0.45)'},
 };
 
-// Per-group accent hues — distinct color for each category's bar, subtotal, and highlight
+// Light-mode room colors — same hue family, darker shades for readability on cream
+const ROOM_COLORS_LIGHT={
+  interior:{dot:'#2563eb',glow:'rgba(37,99,235,0.5)',  text:'#1d4ed8',radial:'rgba(37,99,235,0.07)', dashed:'rgba(37,99,235,0.35)'},
+  systems: {dot:'#4f46e5',glow:'rgba(79,70,229,0.5)', text:'#3730a3',radial:'rgba(79,70,229,0.07)', dashed:'rgba(79,70,229,0.35)'},
+  exterior:{dot:'#0891b2',glow:'rgba(8,145,178,0.5)', text:'#0e7490',radial:'rgba(8,145,178,0.07)', dashed:'rgba(8,145,178,0.35)'},
+  kitchen: {dot:'#16a34a',glow:'rgba(22,163,74,0.5)', text:'#15803d',radial:'rgba(22,163,74,0.07)', dashed:'rgba(22,163,74,0.35)'},
+  bathroom:{dot:'#0891b2',glow:'rgba(8,145,178,0.5)', text:'#0e7490',radial:'rgba(8,145,178,0.07)', dashed:'rgba(8,145,178,0.35)'},
+  bedroom: {dot:'#7c3aed',glow:'rgba(124,58,237,0.5)',text:'#6d28d9',radial:'rgba(124,58,237,0.07)',dashed:'rgba(124,58,237,0.35)'},
+  living:  {dot:'#b45309',glow:'rgba(180,83,9,0.5)',  text:'#92400e',radial:'rgba(180,83,9,0.07)',  dashed:'rgba(180,83,9,0.35)'},
+};
+
+// Per-group accent hues — dark mode
 const GROUP_ACCENT={
   flooring:          {text:'#e0bd7a',bar:'linear-gradient(90deg,#e8c56a,#c8882a)',glow:'rgba(212,162,78,0.5)'},
   paint_wall:        {text:'#c4b5fd',bar:'linear-gradient(90deg,#c4b5fd,#7c3aed)',glow:'rgba(167,139,250,0.5)'},
@@ -273,6 +339,74 @@ const GROUP_ACCENT={
   garage:            {text:'#e9d5ff',bar:'linear-gradient(90deg,#e9d5ff,#7e22ce)',glow:'rgba(192,132,252,0.5)'},
   trees:             {text:'#86efac',bar:'linear-gradient(90deg,#86efac,#15803d)',glow:'rgba(74,222,128,0.5)'},
 };
+
+// Per-group accent hues — light mode (darker text for readability on cream)
+const GROUP_ACCENT_LIGHT={
+  flooring:          {text:'#8b6914',bar:'linear-gradient(90deg,#d4a820,#b47a10)',glow:'rgba(180,130,30,0.35)'},
+  paint_wall:        {text:'#5b21b6',bar:'linear-gradient(90deg,#a78bfa,#6d28d9)',glow:'rgba(109,40,217,0.30)'},
+  doors:             {text:'#1d4ed8',bar:'linear-gradient(90deg,#60a5fa,#1d4ed8)',glow:'rgba(29,78,216,0.30)'},
+  pest_control:      {text:'#047857',bar:'linear-gradient(90deg,#34d399,#059669)',glow:'rgba(4,120,87,0.30)'},
+  cabinets:          {text:'#92400e',bar:'linear-gradient(90deg,#fbbf24,#b45309)',glow:'rgba(180,83,9,0.30)'},
+  countertops_tile:  {text:'#0f766e',bar:'linear-gradient(90deg,#2dd4bf,#0d9488)',glow:'rgba(13,148,136,0.30)'},
+  appliances:        {text:'#075985',bar:'linear-gradient(90deg,#38bdf8,#0284c7)',glow:'rgba(2,132,199,0.30)'},
+  vanity:            {text:'#9d174d',bar:'linear-gradient(90deg,#f472b6,#be185d)',glow:'rgba(157,23,77,0.30)'},
+  tub_shower:        {text:'#155e75',bar:'linear-gradient(90deg,#67e8f9,#0e7490)',glow:'rgba(14,116,144,0.30)'},
+  tile_ba:           {text:'#3730a3',bar:'linear-gradient(90deg,#818cf8,#4338ca)',glow:'rgba(55,48,163,0.30)'},
+  hvac:              {text:'#991b1b',bar:'linear-gradient(90deg,#f87171,#b91c1c)',glow:'rgba(153,27,27,0.30)'},
+  electrical:        {text:'#78350f',bar:'linear-gradient(90deg,#fbbf24,#b45309)',glow:'rgba(120,53,15,0.30)'},
+  structural:        {text:'#7c2d12',bar:'linear-gradient(90deg,#fb923c,#c2410c)',glow:'rgba(194,65,12,0.30)'},
+  insulation_drywall:{text:'#14532d',bar:'linear-gradient(90deg,#4ade80,#15803d)',glow:'rgba(20,83,45,0.30)'},
+  fence:             {text:'#44403c',bar:'linear-gradient(90deg,#a8a29e,#57534e)',glow:'rgba(68,64,60,0.30)'},
+  siding:            {text:'#c2410c',bar:'linear-gradient(90deg,#fb923c,#c2410c)',glow:'rgba(194,65,12,0.30)'},
+  windows:           {text:'#0369a1',bar:'linear-gradient(90deg,#38bdf8,#0284c7)',glow:'rgba(3,105,161,0.30)'},
+  garage:            {text:'#6b21a8',bar:'linear-gradient(90deg,#c084fc,#7e22ce)',glow:'rgba(107,33,168,0.30)'},
+  trees:             {text:'#15803d',bar:'linear-gradient(90deg,#4ade80,#15803d)',glow:'rgba(21,128,61,0.30)'},
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THEME HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+const THEME_KEY='spark_theme';
+
+function isDark(){return document.documentElement.dataset.theme!=='light'}
+
+function getAccent(gKey){
+  return isDark()?(GROUP_ACCENT[gKey]||{text:'#fb923c',bar:'linear-gradient(90deg,#fb923c,#ea580c)',glow:'rgba(234,88,12,0.45)'})
+                 :(GROUP_ACCENT_LIGHT[gKey]||{text:'#c2440a',bar:'linear-gradient(90deg,#fb923c,#c2440a)',glow:'rgba(194,68,10,0.30)'});
+}
+
+function getRoomColors(type){
+  return isDark()?(ROOM_COLORS[type]||ROOM_COLORS.interior)
+                 :(ROOM_COLORS_LIGHT[type]||ROOM_COLORS_LIGHT.interior);
+}
+
+function applyTheme(t){
+  document.documentElement.dataset.theme=t;
+  document.getElementById('meta-theme-color').content=t==='dark'?'#1e1710':'#ede5da';
+}
+
+function initTheme(){
+  const saved=localStorage.getItem(THEME_KEY);
+  const preferred=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+  applyTheme((saved==='dark'||saved==='light')?saved:preferred);
+}
+
+function toggleTheme(){
+  const next=isDark()?'light':'dark';
+  localStorage.setItem(THEME_KEY,next);
+  applyTheme(next);
+  render();
+}
+
+function themeBtnSvg(){
+  return isDark()
+    ?`<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="4" stroke-width="2"/><path stroke-linecap="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+      </svg>`
+    :`<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>`;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // STORAGE
@@ -409,7 +543,6 @@ function getSectionCosts(p){
   return out;
 }
 
-// Returns {gKey: {label, total}} summed across all rooms for project p
 function getGroupCosts(p){
   const out={};
   for(const room of p.rooms){
@@ -428,7 +561,6 @@ function getGroupCosts(p){
 
 // ── Phase 5: progress tracking ────────────────────────────────────────────
 
-// A group is "reviewed" if noAction is set OR at least one item is checked.
 function progressStats(p){
   let total=0,done=0;
   for(const room of p.rooms)
@@ -500,9 +632,10 @@ function showToast(msg,ms=2400){
   if(!el){
     el=document.createElement('div');
     el.id='toast';
-    el.className='fixed bottom-28 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg z-[70] pointer-events-none transition-opacity duration-300 whitespace-nowrap';
+    el.className='fixed bottom-28 left-1/2 -translate-x-1/2 text-sm font-medium px-4 py-2.5 rounded-full shadow-lg z-[70] pointer-events-none transition-opacity duration-300 whitespace-nowrap';
     document.body.appendChild(el);
   }
+  el.style.cssText=`background:${isDark()?'#1a1410':'#2e1a08'};color:#fff;box-shadow:0 4px 20px rgba(0,0,0,${isDark()?'0.5':'0.3'})`;
   el.textContent=msg;
   el.style.opacity='1';
   clearTimeout(el._t);
@@ -548,7 +681,11 @@ function patchProgress(){
   const bar=document.getElementById('progress-bar');
   const txt=document.getElementById('progress-txt');
   const lbl=document.getElementById('progress-label');
-  if(bar){bar.style.width=pct+'%';bar.style.background=pct===100?'linear-gradient(90deg,#5fcf9a,#46c08a)':'linear-gradient(90deg,#cdd3dc,#eef1f5)';}
+  if(bar){
+    bar.style.width=pct+'%';
+    bar.style.background=pct===100?'linear-gradient(90deg,#5fcf9a,#46c08a)'
+      :(isDark()?'linear-gradient(90deg,#cdd3dc,#eef1f5)':'linear-gradient(90deg,#b0a090,#c4b8a8)');
+  }
   if(txt)txt.textContent=pct+'%';
   if(lbl)lbl.textContent=pct===100?'ALL GROUPS REVIEWED':`${pct}% · ${done} OF ${total} GROUPS`;
 }
@@ -564,7 +701,6 @@ function handleCheck(roomId,gKey,itemId,checked){
   item.checked=checked;
   if(checked&&!item.qty)item.qty=1;
   saveProj(proj);
-  // Re-render the full item row so the checkbox visual updates
   const rowEl=document.getElementById(`irow-${roomId}-${gKey}-${itemId}`);
   if(rowEl){
     const tmp=document.createElement('div');
@@ -892,7 +1028,7 @@ function renderPhotoThumb(photo){
   const snCls=hasSN?'text-green-600':'text-gray-400';
   const snText=photo.scanning?'Scanning…':hasSN?esc(photo.serialNumber):'tap to add SN';
   const roomLabel=photo.roomId?(proj.rooms.find(r=>r.id===photo.roomId)?.label||null):null;
-  const rc=roomLabel?(ROOM_COLORS[(proj.rooms.find(r=>r.id===photo.roomId)?.type)||'interior']||ROOM_COLORS.interior):null;
+  const rc=roomLabel?(getRoomColors((proj.rooms.find(r=>r.id===photo.roomId)?.type)||'interior')):null;
   return`<div class="flex flex-col gap-1" id="photo-${photo.id}">
     <div class="relative rounded-xl overflow-hidden bg-gray-100" style="aspect-ratio:1">
       <img src="${photo.dataUrl}" class="w-full h-full object-cover" loading="lazy" draggable="false"/>
@@ -914,12 +1050,12 @@ function renderPhotosSectionContent(){
   const snCount=photos.filter(p=>p.serialNumber).length;
   const barcodeSupported='BarcodeDetector'in window;
   return`<div class="px-4 pt-5 pb-2 flex items-center justify-between">
-    <p class="text-xs font-semibold uppercase tracking-wider" style="color:#707783;letter-spacing:0.14em">
+    <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--c-t3);letter-spacing:0.14em">
       Photos${photos.length?` (${photos.length})`:''}
     </p>
     ${snCount?`<span class="text-xs font-medium" style="color:#5fcf9a">${snCount} SN${snCount!==1?'s':''} captured</span>`
-      :barcodeSupported?`<span class="text-xs" style="color:#5a626d">barcode scan ready</span>`
-      :`<span class="text-xs" style="color:#5a626d">manual SN entry</span>`}
+      :barcodeSupported?`<span class="text-xs" style="color:var(--c-t5)">barcode scan ready</span>`
+      :`<span class="text-xs" style="color:var(--c-t5)">manual SN entry</span>`}
   </div>
   <div class="px-4 pb-6">
     <div class="flex gap-2 mb-4">
@@ -933,7 +1069,7 @@ function renderPhotosSectionContent(){
         <input type="file" accept="image/*" capture="environment" class="hidden" data-photo-input/>
       </label>
       <label class="cursor-pointer">
-        <span class="flex items-center justify-center gap-1 px-4 py-3 font-medium text-sm rounded-xl active:opacity-70 h-full" style="background:#2e241a;border:1px solid rgba(255,200,140,0.085);color:#aab1bd">
+        <span class="flex items-center justify-center gap-1 px-4 py-3 font-medium text-sm rounded-xl active:opacity-70 h-full" style="background:var(--c-s3);border:1px solid var(--c-bw);color:var(--c-t2)">
           Library
         </span>
         <input type="file" accept="image/*" class="hidden" data-photo-input/>
@@ -941,7 +1077,7 @@ function renderPhotosSectionContent(){
     </div>
     ${photos.length
       ?`<div class="grid grid-cols-3 gap-2">${photos.map(p=>renderPhotoThumb(p)).join('')}</div>`
-      :`<p class="text-sm text-center py-4 leading-relaxed" style="color:#5a626d">
+      :`<p class="text-sm text-center py-4 leading-relaxed" style="color:var(--c-t5)">
           No photos yet.<br/>Take photos of equipment labels<br/>to capture serial numbers.
         </p>`}
   </div>`;
@@ -980,8 +1116,8 @@ function priceBtn(roomId,gKey,itemId,cost,unit,hasOverride){
   btn.dataset.gkey=gKey;
   btn.dataset.item=itemId;
   btn.innerHTML=hasOverride
-    ?`<span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span class="mono" style="color:#5a626d">/ ${esc(unit)}</span>`
-    :`<span class="mono" style="color:#5a626d">${fmtCost(cost)} / ${esc(unit)}</span>`;
+    ?`<span class="text-orange-500 font-medium">${fmtCost(cost)}</span><span class="text-orange-300 text-[10px] ml-0.5">✎</span> <span class="mono" style="color:var(--c-t6)">/ ${esc(unit)}</span>`
+    :`<span class="mono" style="color:var(--c-t6)">${fmtCost(cost)} / ${esc(unit)}</span>`;
   return btn;
 }
 
@@ -1028,9 +1164,9 @@ function startPriceEdit(roomId,gKey,itemId,triggerEl){
 // MODAL SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════
 const INPUT_CLS='w-full rounded-xl px-4 py-3 text-sm focus:outline-none';
-const INPUT_STY='background:#261e15;border:1px solid rgba(255,200,140,0.12);color:#d8dde4';
+const INPUT_STY='background:var(--c-s2);border:1px solid var(--c-bwk);color:var(--c-t1)';
 const BTN_CANCEL='flex-1 py-3 rounded-xl font-medium text-sm active:opacity-70';
-const BTN_CANCEL_STY='background:#261e15;border:1px solid rgba(255,200,140,0.10);color:#aab1bd';
+const BTN_CANCEL_STY='background:var(--c-s2);border:1px solid var(--c-bwm);color:var(--c-t2)';
 const BTN_OK    ='flex-1 py-3 rounded-xl text-white font-semibold text-sm active:opacity-80';
 const BTN_OK_STY='background:linear-gradient(180deg,#f97316,#ea580c)';
 const BTN_DANGER='flex-1 py-3 rounded-xl text-white font-semibold text-sm active:opacity-80';
@@ -1039,7 +1175,7 @@ const BTN_DANGER_STY='background:#b91c1c';
 function renderModalContent(st){
   const inp=`class="${INPUT_CLS}" style="${INPUT_STY}"`;
   if(st.mode==='new-proj') return`<div class="p-6">
-    <h3 class="font-bold text-lg mb-4" style="color:#e9ecf0">New Project</h3>
+    <h3 class="font-bold text-lg mb-4" style="color:var(--c-t0)">New Project</h3>
     <input id="mf1" type="text" placeholder="Property name or address" autocomplete="off" ${inp} style="${INPUT_STY};margin-bottom:10px;display:block;width:100%"/>
     <input id="mf2" type="text" placeholder="Full address (optional)" autocomplete="off" ${inp} style="${INPUT_STY};margin-bottom:18px;display:block;width:100%"/>
     <div class="flex gap-3">
@@ -1048,7 +1184,7 @@ function renderModalContent(st){
     </div></div>`;
 
   if(st.mode==='rename-proj') return`<div class="p-6">
-    <h3 class="font-bold text-lg mb-4" style="color:#e9ecf0">Rename Project</h3>
+    <h3 class="font-bold text-lg mb-4" style="color:var(--c-t0)">Rename Project</h3>
     <input id="mf1" type="text" value="${esc(proj?.name||'')}" autocomplete="off" ${inp} style="${INPUT_STY};margin-bottom:10px;display:block;width:100%"/>
     <input id="mf2" type="text" value="${esc(proj?.address||'')}" placeholder="Address (optional)" autocomplete="off" ${inp} style="${INPUT_STY};margin-bottom:18px;display:block;width:100%"/>
     <div class="flex gap-3">
@@ -1059,8 +1195,8 @@ function renderModalContent(st){
   if(st.mode==='rename-room'){
     const room=proj?.rooms.find(r=>r.id===st.roomId);
     return`<div class="p-6">
-      <h3 class="font-bold text-lg mb-1" style="color:#e9ecf0">Rename Room</h3>
-      <p class="text-xs uppercase tracking-wider mb-4" style="color:#707783">${esc(room?.label||'')}</p>
+      <h3 class="font-bold text-lg mb-1" style="color:var(--c-t0)">Rename Room</h3>
+      <p class="text-xs uppercase tracking-wider mb-4" style="color:var(--c-t3)">${esc(room?.label||'')}</p>
       <input id="mf1" type="text" value="${esc(room?.label||'')}" autocomplete="off" ${inp} style="${INPUT_STY};margin-bottom:18px;display:block;width:100%"/>
       <div class="flex gap-3">
         <button data-modal-cancel class="${BTN_CANCEL}" style="${BTN_CANCEL_STY}">Cancel</button>
@@ -1078,9 +1214,9 @@ function renderModalContent(st){
           <p class="text-sm" style="color:#fca97c">This room has data entered${sub>0?` (${fmt(sub)} in items)`:''}.
           All items, quantities, and cost notes will be permanently deleted.</p>
         </div>`
-      :`<p class="text-sm mb-4" style="color:#707783">This room has no data entered.</p>`;
+      :`<p class="text-sm mb-4" style="color:var(--c-t3)">This room has no data entered.</p>`;
     return`<div class="p-6">
-      <h3 class="font-bold text-lg mb-3" style="color:#e9ecf0">Remove <span style="color:#ea580c">${esc(room?.label||'room')}</span>?</h3>
+      <h3 class="font-bold text-lg mb-3" style="color:var(--c-t0)">Remove <span style="color:#ea580c">${esc(room?.label||'room')}</span>?</h3>
       ${dataMsg}
       <div class="flex gap-3">
         <button data-modal-cancel class="${BTN_CANCEL}" style="${BTN_CANCEL_STY}">Keep</button>
@@ -1095,16 +1231,16 @@ function renderModalContent(st){
       ?`<span class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background:rgba(251,146,60,0.13);border:1px solid rgba(251,146,60,0.28);color:#fb923c">${customCount} overridden</span>`
       :`<span class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background:rgba(70,192,138,0.11);border:1px solid rgba(70,192,138,0.28);color:#52d69a">In sync</span>`;
     return`<div class="p-5">
-      <div class="flex items-center justify-between mb-5" style="border-bottom:1px solid rgba(255,200,140,0.085);padding-bottom:14px">
-        <h3 class="font-bold text-lg" style="color:#e9ecf0">Settings</h3>
-        <button data-modal-cancel class="flex items-center justify-center active:opacity-50" style="width:38px;height:38px;border-radius:11px;background:#2e241a;border:1px solid rgba(255,200,140,0.10);color:#9aa3b0;font-size:16px">✕</button>
+      <div class="flex items-center justify-between mb-5" style="border-bottom:1px solid var(--c-bw);padding-bottom:14px">
+        <h3 class="font-bold text-lg" style="color:var(--c-t0)">Settings</h3>
+        <button data-modal-cancel class="flex items-center justify-center active:opacity-50" style="width:38px;height:38px;border-radius:11px;background:var(--c-s3);border:1px solid var(--c-bwm);color:var(--c-t2);font-size:16px">✕</button>
       </div>
-      <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="letter-spacing:0.14em;color:#6b5535">Global Price Schedule</p>
-      <div class="rounded-xl p-3.5 flex items-center gap-3 mb-2" style="background:#261e15;border:1px solid rgba(255,200,140,0.085)">
-        <div class="flex items-center justify-center flex-shrink-0" style="width:38px;height:38px;border-radius:10px;background:#1e242e;font-size:18px">📋</div>
+      <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="letter-spacing:0.14em;color:var(--c-t4)">Global Price Schedule</p>
+      <div class="rounded-xl p-3.5 flex items-center gap-3 mb-2" style="background:var(--c-s2);border:1px solid var(--c-bws)">
+        <div class="flex items-center justify-center flex-shrink-0" style="width:38px;height:38px;border-radius:10px;background:var(--c-gc1);font-size:18px">📋</div>
         <div class="flex-1 min-w-0">
-          <div class="text-sm font-medium" style="color:#cfd4db">Price List</div>
-          <div class="text-xs mono" style="color:#6b5535">repair-items.csv</div>
+          <div class="text-sm font-medium" style="color:var(--c-t1b)">Price List</div>
+          <div class="text-xs mono" style="color:var(--c-t4)">repair-items.csv</div>
         </div>
         ${syncBadge}
       </div>
@@ -1116,7 +1252,7 @@ function renderModalContent(st){
           </span>
           <input type="file" accept=".csv,.CSV" id="price-csv-input" class="hidden"/>
         </label>
-        <button id="dl-prices-btn" class="w-full py-3 rounded-xl text-sm font-medium active:opacity-70 flex items-center justify-center gap-2" style="background:#261e15;border:1px solid rgba(255,200,140,0.085);color:#9aa3b0">
+        <button id="dl-prices-btn" class="w-full py-3 rounded-xl text-sm font-medium active:opacity-70 flex items-center justify-center gap-2" style="background:var(--c-s2);border:1px solid var(--c-bws);color:var(--c-t2)">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           Download Current Price Template
         </button>
@@ -1178,27 +1314,27 @@ function renderItem(room,gKey,itemId){
   const chk=item.checked;
   const checkEl=chk
     ?`<div class="flex-shrink-0 flex items-center justify-center" style="width:22px;height:22px;border-radius:7px;background:linear-gradient(160deg,#52d69a,#34a870);box-shadow:0 0 8px rgba(70,192,138,0.4);color:#051a0d;font-size:13px;font-weight:700">✓</div>`
-    :`<div class="flex-shrink-0" style="width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(255,255,255,0.12)"></div>`;
-  return`<div id="irow-${k}" class="flex items-center gap-3 px-3 py-2.5 ${chk?'':'opacity-45'}" style="border-top:1px solid rgba(255,255,255,0.03)">
+    :`<div class="flex-shrink-0" style="width:22px;height:22px;border-radius:7px;border:1.5px solid var(--c-bc)"></div>`;
+  return`<div id="irow-${k}" class="flex items-center gap-3 px-3 py-2.5 ${chk?'':'opacity-45'}" style="border-top:1px solid var(--c-bi)">
     <div class="cursor-pointer" data-checkbox data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}" style="min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-start">
       ${checkEl}
     </div>
     <div class="flex-1 min-w-0">
-      <div class="font-medium leading-snug" style="font-size:14px;color:${chk?'#d8dde4':'#8a919e'}">${esc(def.name)}</div>
+      <div class="font-medium leading-snug" style="font-size:14px;color:${chk?'var(--c-t1)':'var(--c-tu)'}">${esc(def.name)}</div>
       ${item.costOverride!=null
-        ?`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span style="color:#fb923c;font-weight:500">${fmtCost(cost)}</span><span style="color:#f97316;font-size:10px;margin-left:2px">✎</span> <span class="mono" style="color:#4a5260">/ ${esc(def.unit)}</span></button>`
-        :`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5 mono" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span style="color:#4a5260">${fmtCost(cost)} / ${esc(def.unit)}</span></button>`}
+        ?`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span style="color:#fb923c;font-weight:500">${fmtCost(cost)}</span><span style="color:#f97316;font-size:10px;margin-left:2px">✎</span> <span class="mono" style="color:var(--c-t6)">/ ${esc(def.unit)}</span></button>`
+        :`<button class="text-xs text-left active:opacity-60 leading-snug py-0.5 mono" data-editprice data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"><span style="color:var(--c-t6)">${fmtCost(cost)} / ${esc(def.unit)}</span></button>`}
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
-      <div class="flex items-center" style="background:#130e08;border:1px solid rgba(255,200,140,0.10);border-radius:9px;height:34px">
-        <button class="flex items-center justify-center" style="width:30px;color:#7a8290;font-size:16px"
+      <div class="flex items-center" style="background:var(--c-bg);border:1px solid var(--c-bwm);border-radius:9px;height:34px">
+        <button class="flex items-center justify-center" style="width:30px;color:var(--c-tq);font-size:16px"
           data-qty-dec data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}">−</button>
         <input id="qty-${k}" type="number" min="0" step="0.5" inputmode="decimal"
           class="mono text-right focus:outline-none bg-transparent"
-          style="width:46px;font-size:14px;color:#e8ebef;font-variant-numeric:tabular-nums;border:none;padding:0 2px"
+          style="width:46px;font-size:14px;color:var(--c-tq2);font-variant-numeric:tabular-nums;border:none;padding:0 2px"
           value="${item.qty||''}" placeholder="0"
           data-qty data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}"/>
-        <button class="flex items-center justify-center" style="width:30px;color:#7a8290;font-size:16px"
+        <button class="flex items-center justify-center" style="width:30px;color:var(--c-tq);font-size:16px"
           data-qty-inc data-room="${room.id}" data-gkey="${gKey}" data-item="${itemId}">+</button>
       </div>
       <div id="lt-${k}" class="mono tabular-nums num-col grad-orange" style="font-size:13.5px">${lt>0?fmt(lt):''}</div>
@@ -1212,20 +1348,20 @@ function renderCustomItem(room,gKey,ci){
   const chk=ci.checked;
   const checkEl=chk
     ?`<div class="flex-shrink-0 flex items-center justify-center" style="width:22px;height:22px;border-radius:7px;background:linear-gradient(160deg,#52d69a,#34a870);box-shadow:0 0 8px rgba(70,192,138,0.4);color:#051a0d;font-size:13px;font-weight:700">✓</div>`
-    :`<div class="flex-shrink-0" style="width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(255,255,255,0.12)"></div>`;
-  return`<div id="irow-${k}" class="flex items-center gap-3 px-3 py-2.5 ${chk?'':'opacity-45'}" style="border-top:1px solid rgba(255,255,255,0.03);background:rgba(249,115,22,0.04)">
+    :`<div class="flex-shrink-0" style="width:22px;height:22px;border-radius:7px;border:1.5px solid var(--c-bc)"></div>`;
+  return`<div id="irow-${k}" class="flex items-center gap-3 px-3 py-2.5 ${chk?'':'opacity-45'}" style="border-top:1px solid var(--c-bi);background:rgba(249,115,22,0.04)">
     <div class="cursor-pointer" data-ci-check data-room="${room.id}" data-gkey="${gKey}" data-ci="${ci.id}" style="min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:flex-start">
       ${checkEl}
     </div>
     <div class="flex-1 min-w-0">
-      <div class="font-medium leading-snug" style="font-size:14px;color:${chk?'#d8dde4':'#8a919e'}">${esc(ci.name)}</div>
-      <div class="mono" style="font-size:11px;color:#4a5260">${fmtCost(ci.cost||0)} / ${esc(ci.unit||'ea.')}</div>
+      <div class="font-medium leading-snug" style="font-size:14px;color:${chk?'var(--c-t1)':'var(--c-tu)'}">${esc(ci.name)}</div>
+      <div class="mono" style="font-size:11px;color:var(--c-t6)">${fmtCost(ci.cost||0)} / ${esc(ci.unit||'ea.')}</div>
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
-      <div class="flex items-center" style="background:#130e08;border:1px solid rgba(255,200,140,0.10);border-radius:9px;height:34px">
+      <div class="flex items-center" style="background:var(--c-bg);border:1px solid var(--c-bwm);border-radius:9px;height:34px">
         <input type="number" min="0" step="0.5" inputmode="decimal"
           class="mono text-right focus:outline-none bg-transparent"
-          style="width:58px;font-size:14px;color:#e8ebef;font-variant-numeric:tabular-nums;border:none;padding:0 8px"
+          style="width:58px;font-size:14px;color:var(--c-tq2);font-variant-numeric:tabular-nums;border:none;padding:0 8px"
           value="${ci.qty||''}" placeholder="0"
           data-ci-qty data-room="${room.id}" data-gkey="${gKey}" data-ci="${ci.id}"/>
       </div>
@@ -1241,19 +1377,19 @@ function renderGroup(room,gKey,projTotal=0){
   const sub=computeGroupSub(room,gKey);
   const isCollapsed=collapsed.has(`${room.id}|${gKey}`);
   const barPct=projTotal>0?Math.min(Math.round(sub/projTotal*100),100):0;
-  const ac=GROUP_ACCENT[gKey]||{text:'#fb923c',bar:'linear-gradient(90deg,#fb923c,#ea580c)',glow:'rgba(234,88,12,0.45)'};
-  const subGrad=sub>0?`background:linear-gradient(170deg,${ac.text},${ac.text}99);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent`:'color:#5a626d';
+  const ac=getAccent(gKey);
+  const subGrad=sub>0?`background:linear-gradient(170deg,${ac.text},${ac.text}99);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent`:'color:var(--c-t5)';
   return`<div style="padding:6px 12px 0">
     <div class="cursor-pointer select-none active:opacity-80 relative overflow-hidden"
-      style="background:linear-gradient(160deg,#14181f 0%,#11141a 100%);border:1px solid rgba(255,255,255,0.055);border-radius:12px;padding:11px 13px;margin-bottom:${isCollapsed?'6px':'0'};border-bottom-left-radius:${isCollapsed?'12px':'4px'};border-bottom-right-radius:${isCollapsed?'12px':'4px'}"
+      style="background:linear-gradient(160deg,var(--c-gc1) 0%,var(--c-gc2) 100%);border:1px solid var(--c-bgc);border-radius:12px;padding:11px 13px;margin-bottom:${isCollapsed?'6px':'0'};border-bottom-left-radius:${isCollapsed?'12px':'4px'};border-bottom-right-radius:${isCollapsed?'12px':'4px'}"
       data-collapse data-room="${room.id}" data-gkey="${gKey}">
       <div class="flex items-center gap-2">
         <svg id="chev-${room.id}-${gKey}" class="w-3.5 h-3.5 flex-shrink-0 transition-transform ${isCollapsed?'-rotate-90':''}"
-          style="color:#4a5260"
+          style="color:var(--c-t6)"
           fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
         </svg>
-        <span class="flex-1 text-sm font-semibold" style="color:#cdd3dc">${esc(def.label)}</span>
+        <span class="flex-1 text-sm font-semibold" style="color:var(--c-t1b)">${esc(def.label)}</span>
         <span id="nab-${room.id}-${gKey}"
           class="text-xs px-2.5 py-1 rounded-full font-medium cursor-pointer ${g.noAction?'na-on':'na-off'}"
           data-noaction data-room="${room.id}" data-gkey="${gKey}">
@@ -1261,12 +1397,12 @@ function renderGroup(room,gKey,projTotal=0){
         </span>
         <span id="gsub-${room.id}-${gKey}" class="mono font-bold tabular-nums num-col" style="font-size:13.5px;${subGrad}">${sub>0?fmt(sub):''}</span>
       </div>
-      ${sub>0?`<div style="height:4px;border-radius:3px;background:rgba(255,200,140,0.065);overflow:hidden;margin-top:10px">
+      ${sub>0?`<div style="height:4px;border-radius:3px;background:var(--c-track);overflow:hidden;margin-top:10px">
         <div style="height:100%;width:${barPct}%;border-radius:3px;background:${ac.bar};box-shadow:0 0 8px ${ac.glow}"></div>
       </div>`:''}
       <div id="gbar-${room.id}-${gKey}" class="cost-bar" style="display:none;width:${barPct}%"></div>
     </div>
-    <div id="gb-${room.id}-${gKey}" class="group-body ${isCollapsed?'hidden':''}" style="${g.noAction?'opacity:0.35;':''}background:linear-gradient(160deg,#261e15 0%,#1c1510 100%);border:1px solid rgba(255,200,140,0.055);border-top:none;border-bottom-left-radius:12px;border-bottom-right-radius:12px;padding-bottom:4px;margin-bottom:6px">
+    <div id="gb-${room.id}-${gKey}" class="group-body ${isCollapsed?'hidden':''}" style="${g.noAction?'opacity:0.35;':''}background:linear-gradient(160deg,var(--c-gb1) 0%,var(--c-gb2) 100%);border:1px solid var(--c-bws);border-top:none;border-bottom-left-radius:12px;border-bottom-right-radius:12px;padding-bottom:4px;margin-bottom:6px">
       ${def.items.filter(id=>!g.removedItems.includes(id)).map(id=>renderItem(room,gKey,id)).join('')}
       ${g.customItems.map(ci=>renderCustomItem(room,gKey,ci)).join('')}
     </div>
@@ -1275,11 +1411,11 @@ function renderGroup(room,gKey,projTotal=0){
 
 function renderRoomPhotoStripContent(room){
   const photos=proj.photos.filter(p=>p.roomId===room.id);
-  const rc=ROOM_COLORS[room.type]||ROOM_COLORS.interior;
-  const camSvg=`<svg style="width:18px;height:18px;color:#9aa3b0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`;
-  const libSvg=`<svg style="width:14px;height:14px;color:#707783" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`;
+  const rc=getRoomColors(room.type);
+  const camSvg=`<svg style="width:18px;height:18px;color:var(--c-t2)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`;
+  const libSvg=`<svg style="width:14px;height:14px;color:var(--c-t3)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`;
   const thumbs=photos.map(p=>`
-    <div style="flex-shrink:0;position:relative;width:62px;height:62px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,200,140,0.085)">
+    <div style="flex-shrink:0;position:relative;width:62px;height:62px;border-radius:10px;overflow:hidden;border:1px solid var(--c-bws)">
       <img src="${p.dataUrl}" style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy" draggable="false"/>
       ${p.scanning?`<div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:8px;color:white;font-weight:700;letter-spacing:0.08em">SCAN…</div>`:''}
       <button data-remove-photo="${p.id}" style="position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.72);color:white;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1;border:none">✕</button>
@@ -1287,29 +1423,29 @@ function renderRoomPhotoStripContent(room){
     </div>`).join('');
   const countBadge=photos.length?`<span style="font-size:10px;font-weight:600;color:${rc.text};background:${rc.text}22;border-radius:6px;padding:1px 6px;margin-left:4px">${photos.length}</span>`:'';
   return`<div style="display:flex;align-items:center;gap:6px;padding:8px 14px 4px">
-    <span style="font-size:9.5px;font-weight:600;letter-spacing:0.13em;color:#4a5260;text-transform:uppercase">Photos</span>
+    <span style="font-size:9.5px;font-weight:600;letter-spacing:0.13em;color:var(--c-t6);text-transform:uppercase">Photos</span>
     ${countBadge}
     <div style="flex:1"></div>
     <label style="cursor:pointer;flex-shrink:0">
-      <span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#261e15;border:1px solid rgba(255,200,140,0.10);active:opacity:60">${libSvg}</span>
+      <span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--c-s2);border:1px solid var(--c-bwm)">${libSvg}</span>
       <input type="file" accept="image/*" class="hidden" data-room-photo-input="${room.id}"/>
     </label>
     <label style="cursor:pointer;flex-shrink:0">
-      <span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#261e15;border:1px solid rgba(255,200,140,0.10)">${camSvg}</span>
+      <span style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--c-s2);border:1px solid var(--c-bwm)">${camSvg}</span>
       <input type="file" accept="image/*" capture="environment" class="hidden" data-room-photo-input="${room.id}"/>
     </label>
   </div>
   <div style="display:flex;align-items:center;gap:8px;padding:4px 14px 12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch">
-    ${thumbs||`<span style="font-size:11px;color:#3a404a;font-style:italic;padding:4px 0">Tap 📷 to add room photos</span>`}
+    ${thumbs||`<span style="font-size:11px;color:var(--c-t7);font-style:italic;padding:4px 0">Tap 📷 to add room photos</span>`}
   </div>`;
 }
 
 function renderRoom(room,projTotal=0){
   const rt=ROOM_TYPES[room.type];
-  const rc=ROOM_COLORS[room.type]||ROOM_COLORS.interior;
+  const rc=getRoomColors(room.type);
   const sub=computeRoomSub(room);
   const roomBarPct=projTotal>0?Math.min(Math.round(sub/projTotal*100),100):0;
-  const pencilSvg=`<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="color:rgba(255,255,255,0.2)">
+  const pencilSvg=`<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="color:var(--c-bc)">
     <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
   </svg>`;
   const closeSvg=`<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -1317,7 +1453,7 @@ function renderRoom(room,projTotal=0){
   </svg>`;
   const subGrad=sub>0?`background:linear-gradient(170deg,${rc.text},${rc.dot}cc);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent`:'';
   return`<section>
-    <div class="sticky z-20 flex items-center gap-2.5 px-4 py-3 relative overflow-hidden" style="top:90px;background:radial-gradient(130% 90% at 0% 0%,${rc.radial},rgba(0,0,0,0) 55%),linear-gradient(160deg,#261e15 0%,#1c1510 100%);border-bottom:1px solid rgba(255,200,140,0.075);box-shadow:0 2px 12px rgba(0,0,0,0.3)">
+    <div class="sticky z-20 flex items-center gap-2.5 px-4 py-3 relative overflow-hidden" style="top:90px;background:radial-gradient(130% 90% at 0% 0%,${rc.radial},rgba(0,0,0,0) 55%),linear-gradient(160deg,var(--c-s2) 0%,var(--c-s2b) 100%);border-bottom:1px solid var(--c-bw);box-shadow:0 2px 12px var(--c-sh-h)">
       <span class="flex-shrink-0" style="width:10px;height:10px;border-radius:50%;background:${rc.dot};box-shadow:0 0 12px ${rc.glow},0 0 4px ${rc.dot}"></span>
       <button class="flex items-center gap-1.5 min-w-0 flex-1 active:opacity-70 text-left"
         data-rename-room="${room.id}" title="Tap to rename">
@@ -1325,11 +1461,11 @@ function renderRoom(room,projTotal=0){
         <span class="flex-shrink-0">${pencilSvg}</span>
       </button>
       <span id="rsub-${room.id}" class="mono font-bold tabular-nums flex-shrink-0 num-col" style="font-size:16px;${subGrad}">${sub>0?fmt(sub):''}</span>
-      ${!rt.singleton?`<button class="flex items-center justify-center flex-shrink-0 active:opacity-60" style="width:36px;height:36px;border-radius:10px;color:#6a5858"
+      ${!rt.singleton?`<button class="flex items-center justify-center flex-shrink-0 active:opacity-60" style="width:36px;height:36px;border-radius:10px;color:var(--c-t5)"
         data-remove-room="${room.id}" title="Remove ${esc(room.label)}">${closeSvg}</button>`:''}
       <div id="rbar-${room.id}" class="room-cost-bar" style="width:${roomBarPct}%;background:linear-gradient(90deg,${rc.dot},${rc.dot}66)"></div>
     </div>
-    <div id="room-photos-${room.id}" style="border-bottom:1px solid rgba(255,255,255,0.04)">
+    <div id="room-photos-${room.id}" style="border-bottom:1px solid var(--c-bd)">
       ${renderRoomPhotoStripContent(room)}
     </div>
     <div>
@@ -1341,12 +1477,12 @@ function renderRoom(room,projTotal=0){
 function renderAddRoomSection(){
   const nonSingleton=Object.entries(ROOM_TYPES).filter(([,rt])=>!rt.singleton);
   return`<div class="px-4 py-5">
-    <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="letter-spacing:0.14em;color:#707783">Add Room</p>
+    <p class="text-xs font-semibold uppercase tracking-wider mb-3" style="letter-spacing:0.14em;color:var(--c-t3)">Add Room</p>
     <div class="flex flex-wrap gap-2">
       ${nonSingleton.map(([type,rt])=>{
-        const rc=ROOM_COLORS[type]||ROOM_COLORS.kitchen;
+        const rc=getRoomColors(type);
         return`<button class="px-3.5 py-2 rounded-xl text-sm font-semibold active:opacity-60 active:scale-95 transition-transform flex items-center gap-2"
-          style="background:#2e241a;border:1px solid ${rc.dashed};color:${rc.text}"
+          style="background:var(--c-s3);border:1px solid ${rc.dashed};color:${rc.text}"
           data-add-room="${type}">
           <span style="width:7px;height:7px;border-radius:50%;background:${rc.dot};display:inline-block;flex-shrink:0"></span>
           + ${rt.label}
@@ -1366,54 +1502,58 @@ function renderTriageView(){
   const restTotal=restItems.reduce((s,i)=>s+i.lt,0);
   const maxCost=items[0]?.lt||1;
   const paretoPct=total>0?Math.round(paretoItems.reduce((s,i)=>s+i.lt,0)/total*100):0;
-  const backBtn=`<button data-action="back-to-project" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#2e241a;border:1px solid rgba(255,200,140,0.075);display:flex;align-items:center;justify-content:center;color:#aab1bd">
+  const iconBtn=`display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:var(--c-s3);border:1px solid var(--c-bw);color:var(--c-t2)`;
+  const backBtn=`<button data-action="back-to-project" class="active:opacity-60 flex-shrink-0" style="${iconBtn}">
     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
     </svg></button>`;
-  const header=`<div class="sticky top-0 z-30 pt-safe" style="background:linear-gradient(180deg,#1e1710,#1b1410);border-bottom:1px solid rgba(255,200,140,0.075)">
+  const header=`<div class="sticky top-0 z-30 pt-safe" style="background:var(--c-head-bg);border-bottom:1px solid var(--c-bw)">
     <div class="flex items-center px-4 gap-3" style="height:58px">
       ${backBtn}
       <div class="flex-1 min-w-0 px-1">
-        <div class="font-semibold" style="font-size:15px;color:#e9ecf0">Cost Triage</div>
-        <div class="truncate" style="font-size:12px;color:#6b5535">${esc(proj.name)}</div>
+        <div class="font-semibold" style="font-size:15px;color:var(--c-t0)">Cost Triage</div>
+        <div class="truncate" style="font-size:12px;color:var(--c-t4)">${esc(proj.name)}</div>
       </div>
       <div class="text-right flex-shrink-0">
-        <div style="font-size:10px;letter-spacing:0.12em;color:#6b5535;font-weight:600">TOTAL</div>
+        <div style="font-size:10px;letter-spacing:0.12em;color:var(--c-t4);font-weight:600">TOTAL</div>
         <div class="mono font-bold tabular-nums grad-total" style="font-size:16px">${fmt(total)}</div>
       </div>
+      <button data-action="toggle-theme" class="active:opacity-60 flex-shrink-0" style="${iconBtn}" title="Toggle theme">
+        ${themeBtnSvg()}
+      </button>
     </div>
   </div>`;
   if(!items.length) return header+`<div class="flex flex-col items-center justify-center py-20 px-8 text-center">
-    <div class="flex items-center justify-center mb-4" style="width:56px;height:56px;border-radius:16px;background:#2e241a;border:1px solid rgba(255,200,140,0.075)">
-      <svg class="w-7 h-7" style="color:#5a626d" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+    <div class="flex items-center justify-center mb-4" style="width:56px;height:56px;border-radius:16px;background:var(--c-s3);border:1px solid var(--c-bw)">
+      <svg class="w-7 h-7" style="color:var(--c-t5)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
     </div>
-    <p class="font-medium text-sm mb-1" style="color:#aab1bd">No items checked yet</p>
-    <p class="text-xs leading-relaxed" style="color:#5a626d">Check items during the walkthrough to see what's driving cost here.</p>
+    <p class="font-medium text-sm mb-1" style="color:var(--c-t2)">No items checked yet</p>
+    <p class="text-xs leading-relaxed" style="color:var(--c-t5)">Check items during the walkthrough to see what's driving cost here.</p>
   </div>`;
 
   // Pareto callout card
   const pareto=`<div class="px-4 pt-4">
-    <div style="background:radial-gradient(120% 130% at 100% 0%,rgba(234,88,12,0.18),rgba(234,88,12,0) 60%),linear-gradient(160deg,#2e241a 0%,#2e241a 100%);border:1px solid rgba(249,115,22,0.28);border-radius:16px;padding:15px 16px;box-shadow:0 12px 40px -12px rgba(194,68,10,0.4),inset 0 1px 0 rgba(255,200,140,0.075)">
+    <div style="background:radial-gradient(120% 130% at 100% 0%,rgba(234,88,12,0.18),rgba(0,0,0,0) 60%),linear-gradient(160deg,var(--c-s3) 0%,var(--c-s3) 100%);border:1px solid rgba(249,115,22,0.28);border-radius:16px;padding:15px 16px;box-shadow:0 12px 40px -12px rgba(194,68,10,0.3),inset 0 1px 0 var(--c-bws)">
       <div style="font-size:10px;letter-spacing:0.14em;color:#f7a04a;font-weight:600">PARETO CUTOFF</div>
       <div class="flex items-end justify-between mt-1">
         <div>
           <div class="mono grad-total" style="font-size:34px;font-weight:600;line-height:1">${paretoPct}%</div>
-          <div style="font-size:13px;color:#9aa3b0;padding-bottom:3px">${paretoItems.length} item${paretoItems.length!==1?'s':''} drive ${paretoPct}% of cost</div>
+          <div style="font-size:13px;color:var(--c-t2);padding-bottom:3px">${paretoItems.length} item${paretoItems.length!==1?'s':''} drive ${paretoPct}% of cost</div>
         </div>
       </div>
-      <div style="margin-top:12px;height:7px;border-radius:5px;background:rgba(255,200,140,0.075);overflow:hidden;position:relative">
+      <div style="margin-top:12px;height:7px;border-radius:5px;background:var(--c-track);overflow:hidden;position:relative">
         <div style="height:100%;width:${paretoPct}%;border-radius:5px;background:linear-gradient(90deg,#fb923c,#c2440a);box-shadow:0 0 10px rgba(234,88,12,0.6)"></div>
         <div style="position:absolute;top:-3px;bottom:-3px;left:80%;width:2px;background:rgba(255,255,255,0.5)"></div>
       </div>
-      <div style="font-size:10px;letter-spacing:0.12em;color:#6b5535;margin-top:5px">80% threshold marker</div>
+      <div style="font-size:10px;letter-spacing:0.12em;color:var(--c-t4);margin-top:5px">80% threshold marker</div>
     </div>
   </div>`;
 
   // Triage item cards — warm glow scales with cost rank
   const triageGlowCls=['triage-glow-1','triage-glow-1','triage-glow-2','triage-glow-2','triage-glow-3','triage-glow-3',''];
-  const triBg=[
+  const triBgDark=[
     'radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,0.20),rgba(0,0,0,0) 50%),linear-gradient(160deg,#1f2430 0%,#18202a 100%)',
     'radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,0.15),rgba(0,0,0,0) 50%),linear-gradient(160deg,#1b2129 0%,#161d24 100%)',
     'radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,0.11),rgba(0,0,0,0) 50%),linear-gradient(160deg,#181f27 0%,#131a21 100%)',
@@ -1422,10 +1562,26 @@ function renderTriageView(){
     'linear-gradient(160deg,#13191f 0%,#0f151b 100%)',
     'linear-gradient(160deg,#11171d 0%,#0e1319 100%)',
   ];
-  const triBdr=[
+  const triBgLight=[
+    'radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,0.13),transparent 50%),linear-gradient(160deg,#eef1f6 0%,#e8ecf3 100%)',
+    'radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,0.09),transparent 50%),linear-gradient(160deg,#eaedf4 0%,#e4e8f0 100%)',
+    'radial-gradient(120% 120% at 100% 0%,rgba(234,88,12,0.06),transparent 50%),linear-gradient(160deg,#e7eaf1 0%,#e1e5ee 100%)',
+    'linear-gradient(160deg,#e5e9f0 0%,#dfe3ec 100%)',
+    'linear-gradient(160deg,#e3e7ee 0%,#dde1ea 100%)',
+    'linear-gradient(160deg,#e1e5ec 0%,#dbe0e8 100%)',
+    'linear-gradient(160deg,#dfe3ea 0%,#d9dee7 100%)',
+  ];
+  const triBdrDark=[
     'rgba(249,115,22,0.40)','rgba(249,115,22,0.30)','rgba(249,115,22,0.22)',
     'rgba(249,115,22,0.15)','rgba(249,115,22,0.10)','rgba(249,115,22,0.07)','rgba(249,115,22,0.05)',
   ];
+  const triBdrLight=[
+    'rgba(234,88,12,0.35)','rgba(234,88,12,0.25)','rgba(234,88,12,0.18)',
+    'rgba(234,88,12,0.12)','rgba(234,88,12,0.09)','rgba(234,88,12,0.06)','rgba(234,88,12,0.04)',
+  ];
+  const triBg=isDark()?triBgDark:triBgLight;
+  const triBdr=isDark()?triBdrDark:triBdrLight;
+
   const itemRows=paretoItems.map((item,i)=>{
     const barPct=Math.round(item.lt/maxCost*100);
     const sharePct=Math.round(item.lt/total*100);
@@ -1438,18 +1594,18 @@ function renderTriageView(){
           <div class="flex-1 min-w-0">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex-1">
-                <div class="font-semibold leading-snug" style="font-size:14px;color:#d8dde4">${esc(item.name)}</div>
+                <div class="font-semibold leading-snug" style="font-size:14px;color:var(--c-t1)">${esc(item.name)}</div>
                 <div class="flex items-center gap-1.5 mt-1">
-                  <span class="text-xs px-2 py-0.5 rounded" style="background:rgba(124,140,248,0.12);border:1px solid rgba(124,140,248,0.22);color:#96a2fa">${esc(item.room)}</span>
-                  <span class="text-xs" style="color:#4a5260">${esc(item.group)}</span>
+                  <span class="text-xs px-2 py-0.5 rounded" style="background:rgba(124,140,248,0.12);border:1px solid rgba(124,140,248,0.22);color:${isDark()?'#96a2fa':'#3730a3'}">${esc(item.room)}</span>
+                  <span class="text-xs" style="color:var(--c-t6)">${esc(item.group)}</span>
                 </div>
               </div>
               <div class="text-right flex-shrink-0">
                 <div class="mono font-bold tabular-nums grad-total num-col" style="font-size:15px">${fmt(item.lt)}</div>
-                <div style="font-size:10px;color:#6b5535">${sharePct}%</div>
+                <div style="font-size:10px;color:var(--c-t4)">${sharePct}%</div>
               </div>
             </div>
-            <div style="height:4px;border-radius:3px;background:rgba(255,200,140,0.065);overflow:hidden;margin-top:10px">
+            <div style="height:4px;border-radius:3px;background:var(--c-track);overflow:hidden;margin-top:10px">
               <div style="height:100%;width:${barPct}%;border-radius:3px;background:linear-gradient(90deg,#fb923c,#c2440a);box-shadow:0 0 10px rgba(234,88,12,${Math.max(0.2,0.55-i*0.07)})"></div>
             </div>
           </div>
@@ -1459,16 +1615,16 @@ function renderTriageView(){
   }).join('');
 
   const divider=restItems.length?`<div class="flex items-center gap-3 px-4 py-4 mt-3">
-    <div style="flex:1;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.15) 0 5px,transparent 5px 10px)"></div>
-    <span style="font-size:10px;letter-spacing:0.12em;color:#6b5535;font-weight:600;white-space:nowrap">BELOW 80% THRESHOLD</span>
-    <div style="flex:1;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,0.15) 0 5px,transparent 5px 10px)"></div>
+    <div style="flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--c-bd) 0 5px,transparent 5px 10px)"></div>
+    <span style="font-size:10px;letter-spacing:0.12em;color:var(--c-t4);font-weight:600;white-space:nowrap">BELOW 80% THRESHOLD</span>
+    <div style="flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--c-bd) 0 5px,transparent 5px 10px)"></div>
   </div>`:'';
 
   const restSection=restItems.length?restItems.slice(0,6).map(item=>`<div class="px-4 mb-2">
-    <div class="flex items-center gap-3" style="background:#0f1318;border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:11px 14px;opacity:0.65">
-      <span class="mono flex-shrink-0" style="font-size:13px;color:#4a5260;width:22px">${restItems.indexOf(item)+paretoItems.length+1}</span>
-      <span class="flex-1 min-w-0 truncate" style="font-size:13.5px;color:#9aa3b0">${esc(item.name)}</span>
-      <span class="mono num-col" style="font-size:13.5px;color:#7a8290">${fmt(item.lt)}</span>
+    <div class="flex items-center gap-3" style="background:var(--c-gc2);border:1px solid var(--c-bgc);border-radius:12px;padding:11px 14px;opacity:0.65">
+      <span class="mono flex-shrink-0" style="font-size:13px;color:var(--c-t6);width:22px">${restItems.indexOf(item)+paretoItems.length+1}</span>
+      <span class="flex-1 min-w-0 truncate" style="font-size:13.5px;color:var(--c-t2)">${esc(item.name)}</span>
+      <span class="mono num-col" style="font-size:13.5px;color:var(--c-tq)">${fmt(item.lt)}</span>
     </div>
   </div>`).join(''):'';
 
@@ -1484,27 +1640,31 @@ function renderComparePicker(slot){
   const isA=slot==='a';
   const accentColor=isA?'#fb923c':'#7db0ff';
   const stepLabel=isA?'Step 1 of 2':'Step 2 of 2';
-  return`<div class="sticky top-0 z-30 pt-safe" style="background:linear-gradient(180deg,#1e1710,#1b1410);border-bottom:1px solid rgba(255,200,140,0.075);box-shadow:0 4px 24px rgba(0,0,0,0.4)">
+  const iconBtn=`display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:var(--c-s3);border:1px solid var(--c-bw);color:var(--c-t2)`;
+  return`<div class="sticky top-0 z-30 pt-safe" style="background:var(--c-head-bg);border-bottom:1px solid var(--c-bw);box-shadow:0 4px 24px var(--c-sh-h)">
     <div class="flex items-center px-4 gap-3" style="height:58px">
-      <button data-action="compare-close" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#2e241a;border:1px solid rgba(255,200,140,0.075);display:flex;align-items:center;justify-content:center;color:#aab1bd">
+      <button data-action="compare-close" class="active:opacity-60 flex-shrink-0" style="${iconBtn}">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
       <div class="flex-1 px-1">
-        <div class="font-semibold" style="font-size:15px;color:#e9ecf0">Compare Projects</div>
-        <div style="font-size:12px;color:#6b5535">${stepLabel} — pick Project ${slot.toUpperCase()}</div>
+        <div class="font-semibold" style="font-size:15px;color:var(--c-t0)">Compare Projects</div>
+        <div style="font-size:12px;color:var(--c-t4)">${stepLabel} — pick Project ${slot.toUpperCase()}</div>
       </div>
       <div style="display:flex;gap:5px;align-items:center">
         <div style="width:18px;height:4px;border-radius:2px;background:${isA?'rgba(251,146,60,0.9)':'rgba(125,176,255,0.9)'}"></div>
-        <div style="width:18px;height:4px;border-radius:2px;background:${isA?'rgba(255,255,255,0.1)':'rgba(125,176,255,0.9)'}"></div>
+        <div style="width:18px;height:4px;border-radius:2px;background:${isA?'var(--c-track)':'rgba(125,176,255,0.9)'}"></div>
       </div>
+      <button data-action="toggle-theme" class="active:opacity-60 flex-shrink-0" style="${iconBtn}" title="Toggle theme">
+        ${themeBtnSvg()}
+      </button>
     </div>
   </div>
   <div class="px-4 pt-5 pb-3">
     <div class="rounded-xl px-4 py-3 flex items-center gap-3" style="background:${isA?'rgba(251,146,60,0.07)':'rgba(125,176,255,0.07)'};border:1px solid ${isA?'rgba(251,146,60,0.2)':'rgba(125,176,255,0.2)'}">
       <span style="width:9px;height:9px;border-radius:3px;background:${accentColor};flex-shrink:0;box-shadow:0 0 8px ${accentColor}88"></span>
-      <span style="font-size:13px;color:#d8dde4">${isA?'Which project is the <strong style="color:#e9ecf0">baseline</strong>?':'Which project do you want to <strong style="color:#e9ecf0">compare against</strong>?'}</span>
+      <span style="font-size:13px;color:var(--c-t1)">${isA?'Which project is the <strong style="color:var(--c-t0)">baseline</strong>?':'Which project do you want to <strong style="color:var(--c-t0)">compare against</strong>?'}</span>
     </div>
   </div>
   <div>
@@ -1514,18 +1674,18 @@ function renderComparePicker(slot){
       const tot=full?computeTotal(full):0;
       const pct=full?progressStats(full).pct:0;
       return`<button class="w-full text-left px-4 py-3.5 flex items-center justify-between gap-3 active:opacity-70 ${isTaken?'opacity-20 pointer-events-none':''}"
-        style="border-bottom:1px solid rgba(255,200,140,0.055)"
+        style="border-bottom:1px solid var(--c-bws)"
         data-cmp-pick="${slot}|${p.id}">
         <div class="flex items-center gap-3 min-w-0 flex-1">
           <span style="width:8px;height:8px;border-radius:2px;background:${accentColor};flex-shrink:0"></span>
           <div class="min-w-0">
-            <div class="font-medium truncate" style="font-size:14px;color:#cdd3dc">${esc(p.name)}</div>
-            ${p.address?`<div class="truncate" style="font-size:11px;color:#4a5260">${esc(p.address)}</div>`:''}
+            <div class="font-medium truncate" style="font-size:14px;color:var(--c-t1b)">${esc(p.name)}</div>
+            ${p.address?`<div class="truncate" style="font-size:11px;color:var(--c-t6)">${esc(p.address)}</div>`:''}
           </div>
         </div>
         <div class="text-right flex-shrink-0">
-          <div class="mono font-bold tabular-nums num-col" style="font-size:14px;color:#cfd4db">${tot?fmt(tot):'—'}</div>
-          <div style="font-size:11px;color:#4a5260;margin-top:1px">${pct}% reviewed</div>
+          <div class="mono font-bold tabular-nums num-col" style="font-size:14px;color:var(--c-t1c)">${tot?fmt(tot):'—'}</div>
+          <div style="font-size:11px;color:var(--c-t6);margin-top:1px">${pct}% reviewed</div>
         </div>
       </button>`;
     }).join('')}
@@ -1535,12 +1695,11 @@ function renderComparePicker(slot){
 function renderComparisonResult(pA,pB){
   const totA=computeTotal(pA), totB=computeTotal(pB);
   const {pct:pctA}=progressStats(pA), {pct:pctB}=progressStats(pB);
-  const netDelta=totB-totA;               // positive = B costs more; negative = B is cheaper
+  const netDelta=totB-totA;
   const absDelta=Math.abs(netDelta);
   const cheaper=netDelta<0?'B':'A';
   const diffPct=Math.max(totA,totB)>0?Math.round(absDelta/Math.max(totA,totB)*100):0;
 
-  // ── Section bars ──
   const secA=getSectionCosts(pA), secB=getSectionCosts(pB);
   const secDots={interior:'#5b9dff',systems:'#7c8cf8',exterior:'#38c4c4',kitchen:'#46c08a',bathroom:'#67cfc7',bedroom:'#a78bfa',living:'#d3a24e'};
   const sectionRows=Object.entries(ROOM_TYPES).map(([type,rt])=>{
@@ -1553,18 +1712,18 @@ function renderComparisonResult(pA,pB){
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
           <span style="width:7px;height:7px;border-radius:2px;background:${dot};flex-shrink:0"></span>
-          <span style="font-size:13px;color:#cdd3dc">${rt.label}</span>
+          <span style="font-size:13px;color:var(--c-t1b)">${rt.label}</span>
         </div>
         ${sa!==sb?`<span class="mono" style="font-size:11px;color:${sb>sa?'#fca5a5':'#6ee7b7'}">${sb>sa?'+':'−'}${fmt(Math.abs(sb-sa))}</span>`:''}
       </div>
       <div class="flex items-center gap-2 mb-1.5">
-        <div class="flex-1 overflow-hidden" style="height:7px;border-radius:3px;background:rgba(255,200,140,0.065)">
+        <div class="flex-1 overflow-hidden" style="height:7px;border-radius:3px;background:var(--c-track)">
           <div style="height:100%;width:${wA}%;background:linear-gradient(90deg,#fb923c,#c2440a);border-radius:3px;box-shadow:0 0 8px rgba(234,88,12,0.35)"></div>
         </div>
-        <span class="mono num-col flex-shrink-0" style="font-size:11.5px;color:#cfd4db;min-width:52px">${fmt(sa)}</span>
+        <span class="mono num-col flex-shrink-0" style="font-size:11.5px;color:var(--c-t1c);min-width:52px">${fmt(sa)}</span>
       </div>
       <div class="flex items-center gap-2">
-        <div class="flex-1 overflow-hidden" style="height:7px;border-radius:3px;background:rgba(255,200,140,0.065)">
+        <div class="flex-1 overflow-hidden" style="height:7px;border-radius:3px;background:var(--c-track)">
           <div style="height:100%;width:${wB}%;background:linear-gradient(90deg,#7db0ff,#4a7fc1);border-radius:3px;box-shadow:0 0 8px rgba(125,176,255,0.25)"></div>
         </div>
         <span class="mono num-col flex-shrink-0" style="font-size:11.5px;color:#7db0ff;min-width:52px">${fmt(sb)}</span>
@@ -1572,82 +1731,85 @@ function renderComparisonResult(pA,pB){
     </div>`;
   }).join('');
 
-  // ── Group delta breakdown ──
   const grpA=getGroupCosts(pA), grpB=getGroupCosts(pB);
   const allGKeys=[...new Set([...Object.keys(grpA),...Object.keys(grpB)])];
   const deltas=allGKeys.map(gKey=>{
     const a=grpA[gKey]?.total||0, b=grpB[gKey]?.total||0;
     const delta=b-a;
     const label=GROUPS[gKey]?.label||gKey;
-    const ac=GROUP_ACCENT[gKey]||{text:'#9aa3b0',bar:'#9aa3b0'};
+    const ac=getAccent(gKey);
     return{gKey,label,a,b,delta,ac};
   }).filter(r=>r.a||r.b).sort((x,y)=>Math.abs(y.delta)-Math.abs(x.delta));
   const maxAbs=deltas.reduce((m,r)=>Math.max(m,Math.abs(r.delta)),1);
 
   const deltaRows=deltas.map(r=>{
-    const isPos=r.delta>0;  // B costs more (bad)
+    const isPos=r.delta>0;
     const isZero=r.delta===0;
     const pctBar=Math.round(Math.abs(r.delta)/maxAbs*100);
-    const dotColor=isZero?'rgba(255,255,255,0.2)':isPos?'#fca5a5':'#6ee7b7';
+    const dotColor=isZero?'var(--c-bc)':isPos?'#fca5a5':'#6ee7b7';
     const deltaLabel=isZero?'same':((isPos?'+':'-')+fmt(Math.abs(r.delta)));
-    const deltaColor=isZero?'#4a5260':isPos?'#fca5a5':'#6ee7b7';
-    return`<div style="border-bottom:1px solid rgba(255,255,255,0.04);padding:10px 0">
+    const deltaColor=isZero?'var(--c-t6)':isPos?'#fca5a5':'#6ee7b7';
+    return`<div style="border-bottom:1px solid var(--c-bd);padding:10px 0">
       <div class="flex items-center justify-between gap-2 mb-2">
         <div class="flex items-center gap-2 min-w-0 flex-1">
           <span style="width:7px;height:7px;border-radius:2px;background:${r.ac.bar};flex-shrink:0"></span>
-          <span class="truncate" style="font-size:13px;color:#cdd3dc">${esc(r.label)}</span>
+          <span class="truncate" style="font-size:13px;color:var(--c-t1b)">${esc(r.label)}</span>
         </div>
         <span class="mono font-bold flex-shrink-0" style="font-size:13px;color:${deltaColor}">${deltaLabel}</span>
       </div>
       <div class="flex items-center gap-2 mb-1">
-        <div class="flex-1 overflow-hidden" style="height:6px;border-radius:3px;background:rgba(255,200,140,0.065)">
+        <div class="flex-1 overflow-hidden" style="height:6px;border-radius:3px;background:var(--c-track)">
           ${r.a?`<div style="height:100%;width:${Math.round(r.a/Math.max(r.a,r.b,1)*100)}%;background:linear-gradient(90deg,#fb923c,#c2440a);border-radius:3px"></div>`:''}</div>
-        <span class="mono num-col" style="font-size:11px;color:#9aa3b0;min-width:52px">${r.a?fmt(r.a):'—'}</span>
+        <span class="mono num-col" style="font-size:11px;color:var(--c-t2);min-width:52px">${r.a?fmt(r.a):'—'}</span>
       </div>
       <div class="flex items-center gap-2">
-        <div class="flex-1 overflow-hidden" style="height:6px;border-radius:3px;background:rgba(255,200,140,0.065)">
+        <div class="flex-1 overflow-hidden" style="height:6px;border-radius:3px;background:var(--c-track)">
           ${r.b?`<div style="height:100%;width:${Math.round(r.b/Math.max(r.a,r.b,1)*100)}%;background:linear-gradient(90deg,#7db0ff,#4a7fc1);border-radius:3px"></div>`:''}</div>
         <span class="mono num-col" style="font-size:11px;color:#7db0ff;min-width:52px">${r.b?fmt(r.b):'—'}</span>
       </div>
-      ${!isZero?`<div style="margin-top:6px;height:3px;border-radius:2px;background:rgba(255,255,255,0.04);overflow:hidden">
+      ${!isZero?`<div style="margin-top:6px;height:3px;border-radius:2px;background:var(--c-bi);overflow:hidden">
         <div style="height:100%;width:${pctBar}%;background:${isPos?'linear-gradient(90deg,#fca5a5,#b91c1c)':'linear-gradient(90deg,#6ee7b7,#166534)'};border-radius:2px"></div>
       </div>`:''}
     </div>`;
   }).join('');
 
-  return`<div class="sticky top-0 z-30 pt-safe" style="background:linear-gradient(180deg,#1e1710,#1b1410);border-bottom:1px solid rgba(255,200,140,0.075);box-shadow:0 4px 24px rgba(0,0,0,0.4)">
+  const iconBtn=`display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:var(--c-s3);border:1px solid var(--c-bw);color:var(--c-t2)`;
+  return`<div class="sticky top-0 z-30 pt-safe" style="background:var(--c-head-bg);border-bottom:1px solid var(--c-bw);box-shadow:0 4px 24px var(--c-sh-h)">
     <div class="flex items-center px-4 gap-3" style="height:58px">
-      <button data-action="compare-close" class="active:opacity-60 flex-shrink-0" style="width:40px;height:40px;border-radius:12px;background:#2e241a;border:1px solid rgba(255,200,140,0.075);display:flex;align-items:center;justify-content:center;color:#aab1bd">
+      <button data-action="compare-close" class="active:opacity-60 flex-shrink-0" style="${iconBtn}">
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
         </svg>
       </button>
-      <span class="flex-1 font-semibold px-1" style="font-size:15px;color:#e9ecf0">Project Comparison</span>
+      <span class="flex-1 font-semibold px-1" style="font-size:15px;color:var(--c-t0)">Project Comparison</span>
       <button data-action="compare-reset" class="font-semibold active:opacity-70" style="font-size:12px;color:#7db0ff;min-height:44px;padding:0 8px">Reselect</button>
+      <button data-action="toggle-theme" class="active:opacity-60 flex-shrink-0" style="${iconBtn}" title="Toggle theme">
+        ${themeBtnSvg()}
+      </button>
     </div>
   </div>
 
   <!-- A vs B total cards -->
   <div class="flex gap-3 px-4 pt-4 pb-1">
-    <div class="flex-1 rounded-2xl p-3.5" style="background:radial-gradient(120% 130% at 0% 0%,rgba(249,115,22,0.10),rgba(0,0,0,0) 55%),linear-gradient(160deg,#2e241a,#2e241a);border:1px solid rgba(249,115,22,0.28);box-shadow:0 0 28px -10px rgba(234,88,12,0.35)">
+    <div class="flex-1 rounded-2xl p-3.5" style="background:radial-gradient(120% 130% at 0% 0%,rgba(249,115,22,0.10),rgba(0,0,0,0) 55%),linear-gradient(160deg,var(--c-s3),var(--c-s3));border:1px solid rgba(249,115,22,0.28);box-shadow:0 0 28px -10px rgba(234,88,12,0.25)">
       <div class="flex items-center gap-1.5 mb-2">
         <span style="width:7px;height:7px;border-radius:2px;background:#fb923c;display:inline-block;box-shadow:0 0 6px #fb923c"></span>
-        <span style="font-size:10px;letter-spacing:0.13em;color:#9aa3b0;font-weight:600">PROJECT A</span>
+        <span style="font-size:10px;letter-spacing:0.13em;color:var(--c-t2);font-weight:600">PROJECT A</span>
       </div>
-      <div class="font-semibold leading-snug truncate" style="font-size:13px;color:#e9ecf0">${esc(pA.name)}</div>
-      ${pA.address?`<div class="truncate" style="font-size:11px;color:#4a5260;margin-top:2px">${esc(pA.address)}</div>`:''}
+      <div class="font-semibold leading-snug truncate" style="font-size:13px;color:var(--c-t0)">${esc(pA.name)}</div>
+      ${pA.address?`<div class="truncate" style="font-size:11px;color:var(--c-t6);margin-top:2px">${esc(pA.address)}</div>`:''}
       <div class="mono font-semibold tabular-nums grad-total" style="font-size:24px;margin-top:8px;line-height:1">${fmt(totA)}</div>
-      <div class="mono" style="font-size:11px;color:#6b5535;margin-top:5px">${pctA}% reviewed</div>
+      <div class="mono" style="font-size:11px;color:var(--c-t4);margin-top:5px">${pctA}% reviewed</div>
     </div>
-    <div class="flex-1 rounded-2xl p-3.5" style="background:radial-gradient(120% 130% at 100% 0%,rgba(125,176,255,0.09),rgba(0,0,0,0) 55%),linear-gradient(160deg,#171d27,#12181f);border:1px solid rgba(125,176,255,0.22)">
+    <div class="flex-1 rounded-2xl p-3.5" style="background:radial-gradient(120% 130% at 100% 0%,rgba(125,176,255,0.09),rgba(0,0,0,0) 55%),linear-gradient(160deg,var(--c-gc1),var(--c-gc2));border:1px solid rgba(125,176,255,0.22)">
       <div class="flex items-center gap-1.5 mb-2">
         <span style="width:7px;height:7px;border-radius:2px;background:#7db0ff;display:inline-block;box-shadow:0 0 6px #7db0ff88"></span>
-        <span style="font-size:10px;letter-spacing:0.13em;color:#9aa3b0;font-weight:600">PROJECT B</span>
+        <span style="font-size:10px;letter-spacing:0.13em;color:var(--c-t2);font-weight:600">PROJECT B</span>
       </div>
-      <div class="font-semibold leading-snug truncate" style="font-size:13px;color:#e9ecf0">${esc(pB.name)}</div>
-      ${pB.address?`<div class="truncate" style="font-size:11px;color:#4a5260;margin-top:2px">${esc(pB.address)}</div>`:''}
+      <div class="font-semibold leading-snug truncate" style="font-size:13px;color:var(--c-t0)">${esc(pB.name)}</div>
+      ${pB.address?`<div class="truncate" style="font-size:11px;color:var(--c-t6);margin-top:2px">${esc(pB.address)}</div>`:''}
       <div class="mono font-semibold tabular-nums" style="font-size:24px;margin-top:8px;line-height:1;background:linear-gradient(160deg,#c8dcff,#7db0ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">${fmt(totB)}</div>
-      <div class="mono" style="font-size:11px;color:#6b5535;margin-top:5px">${pctB}% reviewed</div>
+      <div class="mono" style="font-size:11px;color:var(--c-t4);margin-top:5px">${pctB}% reviewed</div>
     </div>
   </div>
 
@@ -1655,44 +1817,44 @@ function renderComparisonResult(pA,pB){
   ${absDelta>0?`<div class="mx-4 my-3 flex items-center gap-3 rounded-xl py-3.5 px-4" style="background:${netDelta>0?'rgba(185,28,28,0.09)':'rgba(22,101,52,0.09)'};border:1px solid ${netDelta>0?'rgba(252,165,165,0.22)':'rgba(110,231,183,0.22)'}">
     <div style="width:28px;height:28px;border-radius:8px;background:${netDelta>0?'rgba(185,28,28,0.2)':'rgba(22,101,52,0.2)'};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${netDelta>0?'↑':'↓'}</div>
     <div class="flex-1 min-w-0">
-      <div style="font-size:13px;color:#cdd3dc">Project ${cheaper} is <strong>${cheaper==='A'?'cheaper':'more expensive'}</strong> by</div>
+      <div style="font-size:13px;color:var(--c-t1b)">Project ${cheaper} is <strong>${cheaper==='A'?'cheaper':'more expensive'}</strong> by</div>
       <div class="mono font-bold" style="font-size:17px;color:${netDelta>0?'#fca5a5':'#6ee7b7'}">${fmt(absDelta)} <span style="font-size:12px;font-weight:500;opacity:0.7">(${diffPct}%)</span></div>
     </div>
-  </div>`:`<div class="mx-4 my-3 rounded-xl py-3 px-4 text-center" style="background:#261e15;border:1px solid rgba(255,200,140,0.075);font-size:13px;color:#6b5535">Identical estimated cost</div>`}
+  </div>`:`<div class="mx-4 my-3 rounded-xl py-3 px-4 text-center" style="background:var(--c-s2);border:1px solid var(--c-bw);font-size:13px;color:var(--c-t4)">Identical estimated cost</div>`}
 
   <!-- Cost by section -->
   <div class="px-4 pt-1 pb-4">
     <div class="flex items-center justify-between mb-3">
-      <p class="text-xs font-semibold uppercase tracking-wider" style="color:#6b5535;letter-spacing:0.14em">Cost by Section</p>
+      <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--c-t4);letter-spacing:0.14em">Cost by Section</p>
       <div class="flex items-center gap-3">
-        <div class="flex items-center gap-1.5"><span style="width:7px;height:7px;border-radius:2px;background:#fb923c;display:inline-block"></span><span style="font-size:11px;color:#6b5535">A</span></div>
-        <div class="flex items-center gap-1.5"><span style="width:7px;height:7px;border-radius:2px;background:#7db0ff;display:inline-block"></span><span style="font-size:11px;color:#6b5535">B</span></div>
+        <div class="flex items-center gap-1.5"><span style="width:7px;height:7px;border-radius:2px;background:#fb923c;display:inline-block"></span><span style="font-size:11px;color:var(--c-t4)">A</span></div>
+        <div class="flex items-center gap-1.5"><span style="width:7px;height:7px;border-radius:2px;background:#7db0ff;display:inline-block"></span><span style="font-size:11px;color:var(--c-t4)">B</span></div>
       </div>
     </div>
     ${sectionRows}
   </div>
 
   <!-- Per-group delta breakdown -->
-  ${deltas.length?`<div class="px-4 pt-2 pb-8" style="border-top:1px solid rgba(255,200,140,0.075)">
+  ${deltas.length?`<div class="px-4 pt-2 pb-8" style="border-top:1px solid var(--c-bw)">
     <div class="flex items-center justify-between mb-1 pt-4">
-      <p class="text-xs font-semibold uppercase tracking-wider" style="color:#6b5535;letter-spacing:0.14em">Group Delta Breakdown</p>
-      <span style="font-size:10px;color:#4a5260">sorted by biggest swing</span>
+      <p class="text-xs font-semibold uppercase tracking-wider" style="color:var(--c-t4);letter-spacing:0.14em">Group Delta Breakdown</p>
+      <span style="font-size:10px;color:var(--c-t6)">sorted by biggest swing</span>
     </div>
-    <div style="font-size:11px;color:#4a5260;margin-bottom:12px">Red = B costs more · Green = B costs less</div>
+    <div style="font-size:11px;color:var(--c-t6);margin-bottom:12px">Red = B costs more · Green = B costs less</div>
     ${deltaRows}
   </div>`:``}`;
 }
 
 function renderCompareView(){
   const list=loadList();
-  if(list.length<2) return`<div class="flex flex-col items-center justify-center min-h-screen px-8 text-center" style="background:radial-gradient(ellipse 70% 40% at 50% 0%,rgba(220,100,15,0.06),transparent 60%),#130e08">
-    <div class="flex items-center justify-center mb-5" style="width:72px;height:72px;border-radius:22px;background:linear-gradient(160deg,#2e241a,#261e15);border:1px solid rgba(125,176,255,0.2);box-shadow:0 16px 40px -12px rgba(0,0,0,0.6)">
+  if(list.length<2) return`<div class="flex flex-col items-center justify-center min-h-screen px-8 text-center" style="background:var(--c-welcome-bg)">
+    <div class="flex items-center justify-center mb-5" style="width:72px;height:72px;border-radius:22px;background:linear-gradient(160deg,var(--c-s3),var(--c-s2));border:1px solid rgba(125,176,255,0.2);box-shadow:0 16px 40px -12px var(--c-sh-f)">
       <svg class="w-9 h-9" style="color:#7db0ff" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
       </svg>
     </div>
-    <h2 class="font-bold text-lg mb-2" style="color:#e9ecf0">Need 2 projects to compare</h2>
-    <p class="text-sm mb-8 max-w-xs leading-relaxed" style="color:#6b5535">You only have ${list.length} project saved. Create another estimate first, then come back to compare.</p>
+    <h2 class="font-bold text-lg mb-2" style="color:var(--c-t0)">Need 2 projects to compare</h2>
+    <p class="text-sm mb-8 max-w-xs leading-relaxed" style="color:var(--c-t4)">You only have ${list.length} project saved. Create another estimate first, then come back to compare.</p>
     <button data-action="compare-close" class="px-6 py-3 text-white font-semibold rounded-xl text-sm active:opacity-80" style="background:linear-gradient(160deg,#f97316,#c2440a);box-shadow:0 10px 28px -8px rgba(194,68,10,0.6)">← Back to Project</button>
   </div>`;
   if(!cmpState.a) return renderComparePicker('a');
@@ -1705,9 +1867,9 @@ function renderCompareView(){
 function renderProject(){
   const costTotal=computeTotal(proj);
   const{pct,done,total:grpTotal}=progressStats(proj);
-  const iconBtn=`display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:#2e241a;border:1px solid rgba(255,200,140,0.075);color:#aab1bd`;
+  const iconBtn=`display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:var(--c-s3);border:1px solid var(--c-bw);color:var(--c-t2)`;
   return`
-    <div class="sticky top-0 z-30 pt-safe" style="background:linear-gradient(180deg,#1e1710,#1b1410);border-bottom:1px solid rgba(255,200,140,0.075);box-shadow:0 4px 24px rgba(0,0,0,0.4)">
+    <div class="sticky top-0 z-30 pt-safe" style="background:var(--c-head-bg);border-bottom:1px solid var(--c-bw);box-shadow:0 4px 24px var(--c-sh-h)">
       <div class="flex items-center px-4 gap-2" style="height:58px">
         <button data-open-side class="active:opacity-60 flex-shrink-0" style="${iconBtn}">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1715,8 +1877,8 @@ function renderProject(){
           </svg>
         </button>
         <div class="flex-1 min-w-0 px-2">
-          <div class="font-semibold leading-tight truncate" style="font-size:15px;color:#e9ecf0;letter-spacing:-0.01em">${esc(proj.name)}</div>
-          ${proj.address?`<div class="truncate" style="font-size:12px;color:#6b5535;margin-top:1px">${esc(proj.address)}</div>`:''}
+          <div class="font-semibold leading-tight truncate" style="font-size:15px;color:var(--c-t0);letter-spacing:-0.01em">${esc(proj.name)}</div>
+          ${proj.address?`<div class="truncate" style="font-size:12px;color:var(--c-t4);margin-top:1px">${esc(proj.address)}</div>`:''}
         </div>
         <button data-action="open-triage" class="active:opacity-60 flex-shrink-0" style="${iconBtn}" title="Cost triage">
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -1734,28 +1896,31 @@ function renderProject(){
           </svg>
           ${Object.keys(getGlobalPrices()).length>0?'<span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style="background:#ea580c"></span>':''}
         </button>
+        <button data-action="toggle-theme" class="active:opacity-60 flex-shrink-0" style="${iconBtn}" title="Toggle theme">
+          ${themeBtnSvg()}
+        </button>
       </div>
       <div class="px-4 pb-3">
         <div class="flex items-center justify-between mb-2">
-          <span id="progress-label" style="font-size:10.5px;letter-spacing:0.14em;color:#6b5535;font-weight:600">${pct===100?'ALL GROUPS REVIEWED':`${pct}% · ${done} OF ${grpTotal} GROUPS`}</span>
-          <span id="progress-txt" class="mono" style="font-size:11.5px;color:#9aa3b0">${pct}%</span>
+          <span id="progress-label" style="font-size:10.5px;letter-spacing:0.14em;color:var(--c-t4);font-weight:600">${pct===100?'ALL GROUPS REVIEWED':`${pct}% · ${done} OF ${grpTotal} GROUPS`}</span>
+          <span id="progress-txt" class="mono" style="font-size:11.5px;color:var(--c-t2)">${pct}%</span>
         </div>
-        <div style="height:5px;border-radius:4px;background:rgba(255,200,140,0.065);overflow:hidden">
-          <div id="progress-bar" class="transition-all duration-500 ease-out" style="height:100%;border-radius:4px;width:${pct}%;background:${pct===100?'linear-gradient(90deg,#52d69a,#34a870)':'linear-gradient(90deg,#9aa3b0,#d8dde4)'}"></div>
+        <div style="height:5px;border-radius:4px;background:var(--c-track);overflow:hidden">
+          <div id="progress-bar" class="transition-all duration-500 ease-out" style="height:100%;border-radius:4px;width:${pct}%;background:${pct===100?'linear-gradient(90deg,#52d69a,#34a870)':(isDark()?'linear-gradient(90deg,#9aa3b0,#d8dde4)':'linear-gradient(90deg,#b0a090,#c4b8a8)')}"></div>
         </div>
       </div>
     </div>
     <div style="min-height:calc(100vh - 90px - 84px)">
       ${proj.rooms.map(r=>renderRoom(r,costTotal)).join('')}
       ${renderAddRoomSection()}
-      <div id="photos-section" style="border-top:1px solid rgba(255,200,140,0.065);margin-top:8px">
+      <div id="photos-section" style="border-top:1px solid var(--c-bws);margin-top:8px">
         ${renderPhotosSectionContent()}
       </div>
     </div>
-    <div class="sticky bottom-0 z-30" style="background:linear-gradient(180deg,#181c23 0%,#261e15 100%);border-top:1px solid rgba(255,200,140,0.10);box-shadow:0 -16px 40px -8px rgba(0,0,0,0.6)">
+    <div class="sticky bottom-0 z-30" style="background:var(--c-footer-bg);border-top:1px solid var(--c-bwm);box-shadow:0 -16px 40px -8px var(--c-sh-f)">
       <div class="flex items-center justify-between px-5 pt-3.5 pb-4 safe-bot gap-4">
         <div>
-          <div class="uppercase" style="font-size:10px;letter-spacing:0.16em;color:#6b5535;font-weight:600">Total Cost</div>
+          <div class="uppercase" style="font-size:10px;letter-spacing:0.16em;color:var(--c-t4);font-weight:600">Total Cost</div>
           <div id="footer-total" class="mono grad-total tabular-nums" style="font-size:33px;font-weight:600;line-height:1.05;margin-top:3px">${fmt(costTotal)}</div>
         </div>
         <button data-action="export"
@@ -1771,16 +1936,20 @@ function renderProject(){
 
 function renderWelcome(){
   const list=loadList();
+  const iconBtn=`display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:var(--c-s3);border:1px solid var(--c-bw);color:var(--c-t2)`;
   return`
-    <div class="min-h-screen flex flex-col" style="background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(249,115,22,0.06),transparent 60%),#130e08">
-      <div class="pt-safe flex-shrink-0" style="background:#1e1710;border-bottom:1px solid rgba(255,200,140,0.075)">
+    <div class="min-h-screen flex flex-col" style="background:var(--c-welcome-bg)">
+      <div class="pt-safe flex-shrink-0" style="background:var(--c-s1);border-bottom:1px solid var(--c-bw)">
         <div class="flex items-center h-14 px-4 gap-3">
-          <button data-open-side class="active:opacity-60 flex items-center justify-center" style="color:#9aa3b0;min-width:44px;min-height:44px">
+          <button data-open-side class="active:opacity-60 flex items-center justify-center" style="color:var(--c-t2);min-width:44px;min-height:44px">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
           </button>
-          <span class="font-semibold" style="font-size:15px;color:#e9ecf0">Spark Estimator</span>
+          <span class="font-semibold flex-1" style="font-size:15px;color:var(--c-t0)">Spark Estimator</span>
+          <button data-action="toggle-theme" class="active:opacity-60 flex-shrink-0" style="${iconBtn}" title="Toggle theme">
+            ${themeBtnSvg()}
+          </button>
         </div>
       </div>
       <div class="flex-1 flex flex-col items-center justify-center p-6 text-center">
@@ -1790,8 +1959,8 @@ function renderWelcome(){
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 21V12h6v9"/>
           </svg>
         </div>
-        <h1 class="text-2xl font-bold mb-2" style="color:#e9ecf0">Spark Estimator</h1>
-        <p class="mb-10 text-sm max-w-xs leading-relaxed" style="color:#6b5535">Fast repair cost estimates during property walkthroughs.</p>
+        <h1 class="text-2xl font-bold mb-2" style="color:var(--c-t0)">Spark Estimator</h1>
+        <p class="mb-10 text-sm max-w-xs leading-relaxed" style="color:var(--c-t4)">Fast repair cost estimates during property walkthroughs.</p>
         <button data-open-modal class="w-full max-w-xs py-4 text-white rounded-2xl font-semibold text-base active:opacity-80 active:scale-95 transition-transform" style="background:linear-gradient(160deg,#f97316,#c2440a);box-shadow:0 16px 40px -10px rgba(194,68,10,0.65),inset 0 1px 0 rgba(255,255,255,0.12)">
           + Start New Project
         </button>
@@ -1815,15 +1984,15 @@ function render(){
 function refreshPanelList(){
   const list=loadList();
   document.getElementById('panel-list').innerHTML=list.length===0
-    ?`<p class="text-sm text-center py-8 px-4" style="color:#4a5260">No projects yet</p>`
+    ?`<p class="text-sm text-center py-8 px-4" style="color:var(--c-t6)">No projects yet</p>`
     :list.map(p=>{
       const isActive=proj&&p.id===proj.id;
       return`<button class="w-full text-left px-4 py-3.5 active:opacity-70 ${isActive?'border-l-[3px]':''}"
-        style="${isActive?'background:rgba(91,157,255,0.08);border-color:#5b9dff;box-shadow:inset 3px 0 0 #5b9dff':'border-bottom:1px solid rgba(255,255,255,0.04)'}"
+        style="${isActive?'background:rgba(91,157,255,0.08);border-color:#5b9dff;box-shadow:inset 3px 0 0 #5b9dff':'border-bottom:1px solid var(--c-bd)'}"
         data-switch="${p.id}">
-        <div class="font-semibold text-sm truncate" style="color:${isActive?'#e9ecf0':'#cad0db'}">${esc(p.name)}</div>
-        ${p.address?`<div class="truncate mt-0.5" style="font-size:11px;color:#4a5260">${esc(p.address)}</div>`:''}
-        <div class="mt-0.5 mono" style="font-size:11px;color:#4a5260">${new Date(p.updatedAt).toLocaleDateString()}</div>
+        <div class="font-semibold text-sm truncate" style="color:${isActive?'var(--c-t0)':'var(--c-t1d)'}">${esc(p.name)}</div>
+        ${p.address?`<div class="truncate mt-0.5" style="font-size:11px;color:var(--c-t6)">${esc(p.address)}</div>`:''}
+        <div class="mt-0.5 mono" style="font-size:11px;color:var(--c-t6)">${new Date(p.updatedAt).toLocaleDateString()}</div>
       </button>`;
     }).join('');
 }
@@ -1868,6 +2037,8 @@ function setupListeners(){
     if(e.target.closest('[data-action="back-to-project"]')){viewMode='project';render();return}
     if(e.target.closest('[data-action="compare-close"]')){viewMode='project';render();return}
     if(e.target.closest('[data-action="compare-reset"]')){cmpState={a:null,b:null};render();return}
+    if(e.target.closest('[data-action="toggle-theme"]')){toggleTheme();return}
+
     const cmpPick=e.target.closest('[data-cmp-pick]');
     if(cmpPick){
       const[slot,id]=cmpPick.dataset.cmpPick.split('|');
@@ -1904,7 +2075,7 @@ function setupListeners(){
     const removeRoom_=e.target.closest('[data-remove-room]');
     if(removeRoom_){openModal('remove-room',{roomId:removeRoom_.dataset.removeRoom});return}
 
-    // New click-based checkbox (div with data-checkbox)
+    // Click-based checkbox (div with data-checkbox)
     const cbDiv=e.target.closest('[data-checkbox]');
     if(cbDiv&&cbDiv.tagName!=='INPUT'){
       const room=proj.rooms.find(r=>r.id===cbDiv.dataset.room);
@@ -1977,6 +2148,7 @@ function setupListeners(){
 // INIT
 // ═══════════════════════════════════════════════════════════════════════════
 function init(){
+  initTheme();
   const id=getActiveId();
   if(id)proj=loadProj(id);
   if(!proj){
